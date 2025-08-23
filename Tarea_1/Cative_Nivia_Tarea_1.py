@@ -103,14 +103,37 @@ def mover_robot(estado, accion):
     return estado
 
 # ========================
-# 6. SIMULACIÓN DEL ROBOT
+# 6. ESTRATEGIA DE MOVIMIENTO (PASO 4)
+# ========================
+
+def estrategia_mixta(estado):
+    x, y = estado["posicion"]
+
+    # Si ya alcanzó el objetivo -> recargar infinito
+    if estado["objetivo_alcanzado"]:
+        return "recargar"
+
+    # Si batería baja, recargar
+    if estado["bateria"] <= 10:
+        return "recargar"
+
+    # Si batería suficiente, moverse hacia (2,2)
+    if x < 2:
+        return "adelante"
+    elif y < 2:
+        return "derecha"
+    else:
+        return "recargar"  # fallback
+    
+# ========================
+# 7. SIMULACIÓN DEL ROBOT
 # ========================
 estado = {"posicion": (0, 0), "bateria": 50, "objetivo_alcanzado": False}
 recompensa_total = 0
-total_pasos = 10
+total_pasos = 10   # le damos más pasos para ver cómo acumula recargando al final
 
 for paso in range(total_pasos):
-    accion = random.choice(acciones)
+    accion = estrategia_mixta(estado)   # <<<<< usamos la estrategia mixta
     estado = mover_robot(estado, accion)
     r = recompensa(accion, estado, paso + 1, total_pasos)
     recompensa_total += r
