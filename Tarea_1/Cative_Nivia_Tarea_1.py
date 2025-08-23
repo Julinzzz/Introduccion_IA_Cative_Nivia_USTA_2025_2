@@ -33,32 +33,34 @@ print("\nAcciones posibles:", acciones)
 # ========================
 # 4. FUNCIÓN DE RECOMPENSA
 # ========================
-def recompensa(accion, nuevo_estado, paso_actual, total_pasos):
-    # 1. Recargar da recompensa pequeña
+def recompensa(accion, estado_anterior, nuevo_estado, paso_actual, total_pasos):
+    r = 0
+    movimientos = ["adelante", "atras", "izquierda", "derecha"]
+
+    # 1) Recargar (pequeña recompensa)
     if accion == "recargar":
-        return 5
+        r += 5
 
-    # 2. Objetivo alcanzado
-    if nuevo_estado["objetivo_alcanzado"]:
-        return 10
+    # 2) Costo normal de moverse
+    if accion in movimientos:
+        r += -1
 
-    # 3. Castigo por moverse sin batería
-    if accion in ["adelante", "atras", "izquierda", "derecha"] and nuevo_estado["bateria"] <= 0:
-        return -5
+    # 3) Castigo por intentar moverse sin batería
+    if accion in movimientos and nuevo_estado["bateria"] <= 0:
+        r += -5
 
-    # 4. Bonus por llegar rápido al objetivo (menos de 5 pasos)
-    if nuevo_estado["objetivo_alcanzado"] and paso_actual < 5:
-        return 20
+    # 4) Recompensa por llegar al objetivo (solo si antes no lo había alcanzado)
+    if not estado_anterior["objetivo_alcanzado"] and nuevo_estado["objetivo_alcanzado"]:
+        r += 10
+        # Bonus por llegar rápido (<5 pasos)
+        if paso_actual < 5:
+            r += 20
 
-    # 5. Castigo por demasiados movimientos sin llegar al objetivo (ejemplo: más de la mitad de los pasos)
-    if paso_actual > total_pasos // 2 and not nuevo_estado["objetivo_alcanzado"]:
-        return -2
+    # 5) Castigo por tardarse (> mitad de los pasos) sin llegar
+    if paso_actual > (total_pasos // 2) and not nuevo_estado["objetivo_alcanzado"]:
+        r += -2
 
-    # 6. Costo normal de moverse
-    if accion in ["adelante", "atras", "izquierda", "derecha"]:
-        return -1
-
-    return 0
+    return r
 
 # ========================
 # 5. AMBIENTE Y SIMULACIÓN
@@ -130,12 +132,13 @@ def estrategia_mixta(estado):
 # ========================
 estado = {"posicion": (0, 0), "bateria": 50, "objetivo_alcanzado": False}
 recompensa_total = 0
-total_pasos = 10   # le damos más pasos para ver cómo acumula recargando al final
+total_pasos = 10
 
 for paso in range(total_pasos):
-    accion = estrategia_mixta(estado)   # <<<<< usamos la estrategia mixta
+    estado_anterior = estado.copy()   # Guardar estado anterior
+    accion = estrategia_mixta(estado)
     estado = mover_robot(estado, accion)
-    r = recompensa(accion, estado, paso + 1, total_pasos)
+    r = recompensa(accion, estado_anterior, estado, paso + 1, total_pasos)
     recompensa_total += r
     print(f"Paso {paso+1}: Acción = {accion}, Estado = {estado}, Recompensa = {r}")
 
