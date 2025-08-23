@@ -48,12 +48,21 @@ def recompensa(accion, nuevo_estado):
 # ========================
 import random
 
-# >>>>>>> Paso 1: batería baja en cada movimiento <<<<<<<
-COSTO_MOVIMIENTO = 10  # puedes ajustar el costo si el profe lo pide
+# >>> Paso 1 (ya hecho): costo por movimiento
+COSTO_MOVIMIENTO = 10
 
 def mover_robot(estado, accion):
     x, y = estado["posicion"]
 
+    movimientos = ["adelante", "atras", "izquierda", "derecha"]
+
+    # >>> Paso 2: si no hay batería, bloquear movimientos
+    if accion in movimientos and estado["bateria"] <= 0:
+        # no cambia la posición; solo avisamos (opcional)
+        # print("Intento de moverse sin batería: acción ignorada")
+        return estado
+
+    # --- movimientos permitidos ---
     if accion == "adelante":
         x = min(x + 1, 2)
     elif accion == "atras":
@@ -65,13 +74,12 @@ def mover_robot(estado, accion):
     elif accion == "recargar":
         estado["bateria"] = 100  # recarga completa
 
-    # aplicar costo de batería SOLO si fue un movimiento
-    if accion in ["adelante", "atras", "izquierda", "derecha"]:
+    # costo de batería solo al moverse
+    if accion in movimientos:
         estado["bateria"] = max(0, estado["bateria"] - COSTO_MOVIMIENTO)
 
     estado["posicion"] = (x, y)
 
-    # objetivo en (2, 2)
     if estado["posicion"] == (2, 2):
         estado["objetivo_alcanzado"] = True
 
