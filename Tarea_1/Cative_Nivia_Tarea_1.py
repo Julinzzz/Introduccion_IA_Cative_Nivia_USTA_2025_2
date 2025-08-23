@@ -33,15 +33,32 @@ print("\nAcciones posibles:", acciones)
 # ========================
 # 4. FUNCIÓN DE RECOMPENSA
 # ========================
-def recompensa(accion, nuevo_estado):
+def recompensa(accion, nuevo_estado, paso_actual, total_pasos):
+    # 1. Recargar da recompensa pequeña
     if accion == "recargar":
         return 5
-    elif nuevo_estado["objetivo_alcanzado"]:
+
+    # 2. Objetivo alcanzado
+    if nuevo_estado["objetivo_alcanzado"]:
         return 10
-    elif accion in ["adelante", "atras", "izquierda", "derecha"]:
-        return -1  # Costo de moverse
-    else:
-        return 0
+
+    # 3. Castigo por moverse sin batería
+    if accion in ["adelante", "atras", "izquierda", "derecha"] and nuevo_estado["bateria"] <= 0:
+        return -5
+
+    # 4. Bonus por llegar rápido al objetivo (menos de 5 pasos)
+    if nuevo_estado["objetivo_alcanzado"] and paso_actual < 5:
+        return 20
+
+    # 5. Castigo por demasiados movimientos sin llegar al objetivo (ejemplo: más de la mitad de los pasos)
+    if paso_actual > total_pasos // 2 and not nuevo_estado["objetivo_alcanzado"]:
+        return -2
+
+    # 6. Costo normal de moverse
+    if accion in ["adelante", "atras", "izquierda", "derecha"]:
+        return -1
+
+    return 0
 
 # ========================
 # 5. AMBIENTE Y SIMULACIÓN
@@ -58,8 +75,8 @@ def mover_robot(estado, accion):
 
     # >>> Paso 2: si no hay batería, bloquear movimientos
     if accion in movimientos and estado["bateria"] <= 0:
-        # no cambia la posición; solo avisamos (opcional)
-        # print("Intento de moverse sin batería: acción ignorada")
+        # no cambia la posición; se avisa
+        print("Intento de moverse sin batería: acción ignorada")
         return estado
 
     # --- movimientos permitidos ---
@@ -90,11 +107,12 @@ def mover_robot(estado, accion):
 # ========================
 estado = {"posicion": (0, 0), "bateria": 50, "objetivo_alcanzado": False}
 recompensa_total = 0
+total_pasos = 10
 
-for paso in range(10):
+for paso in range(total_pasos):
     accion = random.choice(acciones)
     estado = mover_robot(estado, accion)
-    r = recompensa(accion, estado)
+    r = recompensa(accion, estado, paso + 1, total_pasos)
     recompensa_total += r
     print(f"Paso {paso+1}: Acción = {accion}, Estado = {estado}, Recompensa = {r}")
 
