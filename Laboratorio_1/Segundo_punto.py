@@ -1,35 +1,41 @@
-# Segundo_punto.py — Commit 2 (paso a paso + BFS corto)
+# Segundo_punto.py — Commit 3 (versión final)
 # -----------------------------------------------------------------------------
-# Mejoras:
-# - Impresión "paso a paso" más clara para lámpara y mascota.
-# - En el tesoro cambiamos la política simple por un BFS cortico que encuentra
-#   un camino MÁS CORTO (óptimo en número de pasos) en la cuadrícula 3x3.
-#   BFS es fácil: cola (queue), visitados y padres para reconstruir el camino.
+# Contenido:
+# 1) LÁMPARA: estados y acciones, transición, simulación y verificación de meta.
+# 2) MASCOTA: igual que lámpara pero con otra semántica; añadimos "recompensa" simple.
+# 3) TESORO: BFS en cuadrícula 3x3 con reconstrucción de ruta, métricas y comentarios.
+# Objetivo docente: visualizar "espacio de estados", "espacio de acciones" y "estado meta".
 # -----------------------------------------------------------------------------
 
 from collections import deque
 
 # ===================== 1) LÁMPARA =====================
 def acciones_lampara(_estado):
+    """Acciones siempre disponibles en este ejemplo."""
     return ["PRENDER", "APAGAR"]
 
 def transicion_lampara(estado, accion):
+    """Función de transición f(estado, acción) -> nuevo_estado."""
     if accion == "PRENDER":
         return "ENCENDIDA"
-    elif accion == "APAGAR":
+    if accion == "APAGAR":
         return "APAGADA"
-    return estado
+    return estado  # acción inválida → sin cambio
 
 def ejemplo_lampara():
-    print("=== LÁMPARA (paso a paso) ===")
-    estado = "APAGADA"
-    meta    = "ENCENDIDA"
-    print(f"Estado inicial: {estado}")
-    print("Acciones disponibles:", acciones_lampara(estado))
-    estado = transicion_lampara(estado, "PRENDER")
-    print(f"Después de PRENDER → {estado}")
-    if estado == meta:
-        print("¡Meta alcanzada!\n")
+    estados = ["ENCENDIDA", "APAGADA"]
+    estado_inicial = "APAGADA"
+    estado_meta    = "ENCENDIDA"
+
+    print("=== LÁMPARA (espacio de estados y acciones) ===")
+    print(f"Estados: {estados}")
+    print(f"Inicial: {estado_inicial} | Meta: {estado_meta}")
+    print("Acciones disponibles:", acciones_lampara(estado_inicial))
+
+    accion = "PRENDER"
+    estado = transicion_lampara(estado_inicial, accion)
+    print(f"Aplicar {accion} → {estado}")
+    print("¡Meta alcanzada!\n" if estado == estado_meta else "No se alcanzó la meta.\n")
 
 # ===================== 2) MASCOTA =====================
 def acciones_mascota(_estado):
@@ -38,22 +44,35 @@ def acciones_mascota(_estado):
 def transicion_mascota(estado, accion):
     if accion == "DAR_COMIDA":
         return "CONTENTA"
-    elif accion == "QUITAR_COMIDA":
+    if accion == "QUITAR_COMIDA":
         return "TRISTE"
     return estado
 
-def ejemplo_mascota():
-    print("=== MASCOTA (paso a paso) ===")
-    estado = "TRISTE"
-    meta    = "CONTENTA"
-    print(f"Estado inicial: {estado}")
-    print("Acciones disponibles:", acciones_mascota(estado))
-    estado = transicion_mascota(estado, "DAR_COMIDA")
-    print(f"Después de DAR_COMIDA → {estado}")
-    if estado == meta:
-        print("¡Meta alcanzada!\n")
+def recompensa_mascota(estado, accion, nuevo_estado):
+    """
+    Recompensa muy simple:
+      +1 si pasamos a CONTENTA,
+       0 en otro caso. (Solo ilustrativo; no hay aprendizaje aquí)
+    """
+    return 1 if nuevo_estado == "CONTENTA" else 0
 
-# ===================== 3) TESORO (BFS corto) =====================
+def ejemplo_mascota():
+    estados = ["CONTENTA", "TRISTE"]
+    estado_inicial = "TRISTE"
+    estado_meta    = "CONTENTA"
+
+    print("=== MASCOTA (recompensa & ambiente) ===")
+    print(f"Estados: {estados}")
+    print(f"Inicial: {estado_inicial} | Meta: {estado_meta}")
+
+    accion = "DAR_COMIDA"
+    nuevo_estado = transicion_mascota(estado_inicial, accion)
+    r = recompensa_mascota(estado_inicial, accion, nuevo_estado)
+
+    print(f"Acción: {accion} → Estado: {nuevo_estado} | Recompensa: {r}")
+    print("¡Meta alcanzada!\n" if nuevo_estado == estado_meta else "No se alcanzó la meta.\n")
+
+# ===================== 3) TESORO (BFS con métricas) =====================
 N = 3
 MOVES = [(-1,0,"↑"), (0,1,"→"), (1,0,"↓"), (0,-1,"←")]
 
@@ -63,16 +82,20 @@ def dentro(x, y):
 def bfs_camino(inicio, meta):
     """
     BFS en cuadrícula sin obstáculos.
-    Retorna (camino, acciones) si existe, sino (None, None).
+    Retorna (camino, acciones, estadisticas).
+    'estadisticas' incluye: nodos_expandidos y longitud_de_camino.
     """
     q = deque([inicio])
-    parents = {inicio: (None, None)}  # celda -> (padre, acción)
+    parents = {inicio: (None, None)}  # (padre, acción)
     visit = {inicio}
+    expandidos = 0
 
     while q:
         x, y = q.popleft()
+        expandidos += 1
+
         if (x, y) == meta:
-            # reconstruir
+            # reconstrucción
             path, acts = [], []
             cur = meta
             while cur is not None:
@@ -81,8 +104,9 @@ def bfs_camino(inicio, meta):
                 acts.append(a)
                 cur = p
             path.reverse()
-            acts = [a for a in reversed(acts)][1:]  # quitar None inicial
-            return path, acts
+            acts = [a for a in reversed(acts)][1:]
+            stats = {"nodos_expandidos": expandidos, "longitud_de_camino": len(acts)}
+            return path, acts, stats
 
         for dx, dy, nombre in MOVES:
             nx, ny = x + dx, y + dy
@@ -90,19 +114,25 @@ def bfs_camino(inicio, meta):
                 visit.add((nx, ny))
                 parents[(nx, ny)] = ((x, y), nombre)
                 q.append((nx, ny))
-    return None, None
+
+    return None, None, {"nodos_expandidos": expandidos, "longitud_de_camino": None}
 
 def ejemplo_tesoro():
-    print("=== TESORO (BFS) ===")
     inicio = (0, 0)
     meta   = (2, 2)
-    camino, acciones = bfs_camino(inicio, meta)
+    print("=== TESORO (BFS con métricas) ===")
+    print(f"Inicio: {inicio}  |  Meta: {meta}")
+
+    camino, acciones, stats = bfs_camino(inicio, meta)
     if camino is None:
         print("No hay camino.")
-    else:
-        print("Acciones:", " ".join(acciones))
-        print("Camino:", " -> ".join(map(str, camino)))
-        print("¡Tesoro encontrado!\n")
+        return
+
+    print("Acciones:", " ".join(acciones))
+    print("Camino:", " -> ".join(map(str, camino)))
+    print(f"Métricas: {stats['nodos_expandidos']} nodos expandidos | "
+          f"longitud de camino = {stats['longitud_de_camino']}\n")
+    print("¡Tesoro encontrado!\n")
 
 # -------------------- MAIN --------------------
 if __name__ == "__main__":
