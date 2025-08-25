@@ -1,4 +1,3 @@
-
 # Primer Punto — Ecosistema de Visualización Interactiva en Python (hvPlot · HoloViews · Datashader · Bokeh/Matplotlib/Plotly · Streamlit)
 
 > **Objetivo.** Presentar, de manera práctica y académica, cómo se articula el ecosistema de visualización basado en **hvPlot** y **HoloViews**, cómo **Datashader** permite escalar a millones de puntos, qué salidas de *rendering* soportan (**Bokeh**, **Matplotlib**, **Plotly**) y cómo **Streamlit** sirve para desplegar prototipos o aplicaciones de *data apps*. Se incluyen descripciones, casos de uso y fragmentos de código mínimos.
@@ -220,3 +219,156 @@ dependencies:
 ## Referencias
 - Documentación oficial: hvPlot · HoloViews · Datashader · Bokeh · Matplotlib · Plotly · Streamlit.
 - Guías introductorias y galerías de ejemplos en los sitios oficiales de cada proyecto.
+
+![Punto_2](Punto_2.png)
+
+# Segundo Punto — Investigación sobre Agentes Inteligentes, Campos de Potencial Artificial y el Modelo BDI
+
+> **Referencia base:** Infante Moreno, Willson (2025). *Modelo de razonamiento basado en creencias, deseos e intenciones para la toma de decisiones en un algoritmo de planificación de trayectorias*. Universidad Distrital Francisco José de Caldas, Maestría en Ingeniería.
+
+---
+
+## Tabla de contenidos
+1. [Introducción](#introducción)
+2. [¿Qué es un agente inteligente?](#qué-es-un-agente-inteligente)
+3. [Campos de potencial artificial](#campos-de-potencial-artificial)
+4. [El modelo BDI (Belief–Desire–Intention)](#el-modelo-bdi-beliefdesireintention)
+5. [Conclusiones](#conclusiones)
+6. [Referencias](#referencias)
+
+---
+
+## Introducción
+
+La tesis de Willson Infante Moreno (2025) aborda la navegación autónoma de robots móviles en entornos complejos. Para mejorar el método clásico de **campos de potencial artificial (APF)**, que puede llevar a mínimos locales, el autor propone integrar el modelo cognitivo **BDI (Belief–Desire–Intention)**, utilizado en agentes inteligentes.  
+El resultado es un algoritmo capaz de tomar decisiones más informadas, permitiendo al robot evitar trampas de mínimos locales y optimizar sus trayectorias.
+
+---
+
+## ¿Qué es un agente inteligente?
+
+Un **agente inteligente** es una entidad, física (robot) o virtual (software), capaz de:  
+- **Percibir** su entorno mediante sensores o entradas de datos.  
+- **Razonar** con base en la información recibida (procesamiento cognitivo o algorítmico).  
+- **Actuar** sobre su entorno mediante actuadores o salidas de software.  
+- **Aprender** y adaptarse a cambios para optimizar su desempeño.
+
+En palabras de Wooldridge (2002), un agente es un sistema computacional autónomo que interactúa en un entorno para lograr objetivos, tomando decisiones racionales de acuerdo con sus **percepciones, conocimientos y metas**.
+
+**Ejemplo de un agente inteligente en Python:**
+
+```python
+class AgenteInteligente:
+    def __init__(self, nombre):
+        self.nombre = nombre
+        self.creencias = {}
+        self.objetivo = None
+
+    def percibir(self, entorno):
+        self.creencias.update(entorno)
+
+    def decidir(self):
+        if "obstaculo" in self.creencias:
+            return "evadir"
+        return "avanzar"
+
+    def actuar(self, accion):
+        print(f"{self.nombre} ejecuta la acción: {accion}")
+
+# Simulación simple
+robot = AgenteInteligente("R2-D2")
+robot.percibir({"obstaculo": True})
+accion = robot.decidir()
+robot.actuar(accion)
+```
+
+---
+
+## Campos de potencial artificial
+
+El método de **campos de potencial artificial (Artificial Potential Fields, APF)** modela el movimiento de un robot en un entorno como si estuviera sometido a fuerzas virtuales:
+
+- **Campo de atracción:** generado por el objetivo, que “tira” del robot hacia la meta.  
+- **Campo de repulsión:** generado por los obstáculos, que “empujan” al robot lejos de ellos.  
+
+El robot sigue la trayectoria resultante de la suma de ambos campos:
+
+\[ec{F}_{nav} = ec{F}_{atracción} + ec{F}_{repulsión}\]
+
+**Ventajas:**  
+- Simple de implementar.  
+- Computacionalmente eficiente.  
+- Adecuado para entornos dinámicos.  
+
+**Limitaciones:**  
+- Posibilidad de quedar atrapado en **mínimos locales**, donde la fuerza neta es cero antes de llegar al objetivo.  
+- Oscilaciones en pasajes estrechos o cerca de obstáculos.  
+
+**Ejemplo en Python:**
+
+```python
+import numpy as np
+
+def campo_potencial(pos, objetivo, obstaculos):
+    # Fuerza de atracción
+    F_attr = objetivo - pos
+    # Fuerzas de repulsión
+    F_rep = np.sum([(pos - obs)/np.linalg.norm(pos - obs)**2 for obs in obstaculos], axis=0)
+    return F_attr + F_rep
+
+# Simulación simple
+pos = np.array([0.0, 0.0])
+objetivo = np.array([5.0, 5.0])
+obstaculos = [np.array([2.0, 2.0]), np.array([3.0, 4.0])]
+print("Vector de fuerza resultante:", campo_potencial(pos, objetivo, obstaculos))
+```
+
+---
+
+## El modelo BDI (Belief–Desire–Intention)
+
+El **modelo BDI**, inspirado en la teoría filosófica de Michael Bratman, estructura la toma de decisiones de un agente en tres componentes fundamentales:
+
+- **Beliefs (Creencias):** conocimiento que el agente tiene del entorno (posición, obstáculos, estado propio).  
+- **Desires (Deseos):** objetivos o metas que quiere alcanzar.  
+- **Intentions (Intenciones):** planes y acciones seleccionadas para cumplir los deseos, considerando las creencias actuales.
+
+**Funcionamiento en la planificación de trayectorias:**  
+1. El robot forma creencias sobre su entorno (mapa, obstáculos, objetivo).  
+2. Define deseos (alcanzar el destino, evitar colisiones, minimizar tiempo).  
+3. Genera intenciones (acciones concretas como girar, avanzar, retroceder).  
+4. Ajusta dinámicamente sus intenciones si detecta un mínimo local en APF.  
+
+**Ejemplo mínimo en pseudocódigo:**
+
+```python
+creencias = {"obstaculos": [(2,2), (3,3)], "posicion": (0,0)}
+deseos = ["llegar_objetivo"]
+intenciones = []
+
+if "llegar_objetivo" in deseos:
+    if (2,2) in creencias["obstaculos"]:
+        intenciones.append("evadir")
+    else:
+        intenciones.append("avanzar")
+
+print("Intenciones seleccionadas:", intenciones)
+```
+
+---
+
+## Conclusiones
+
+- Los **agentes inteligentes** permiten modelar sistemas autónomos que perciben, razonan y actúan.  
+- Los **campos de potencial artificial** son una técnica eficiente pero limitada para la navegación de robots.  
+- La integración del modelo **BDI** al método APF mejora la capacidad del robot para evitar **mínimos locales** y tomar decisiones más cercanas al razonamiento humano.  
+- Esto abre la puerta a aplicaciones en **robótica de servicio, exploración autónoma y navegación en entornos dinámicos**.
+
+---
+
+## Referencias
+
+- Infante Moreno, W. (2025). *Modelo de razonamiento basado en creencias, deseos e intenciones para la toma de decisiones en un algoritmo de planificación de trayectorias*. Universidad Distrital Francisco José de Caldas.  
+- Wooldridge, M. (2002). *An Introduction to MultiAgent Systems*. Wiley.  
+- Bratman, M. (1987). *Intentions, Plans, and Practical Reason*. Harvard University Press.  
+- Khatib, O. (1986). *Real-time obstacle avoidance for manipulators and mobile robots*. The International Journal of Robotics Research, 5(1), 90-98.  
