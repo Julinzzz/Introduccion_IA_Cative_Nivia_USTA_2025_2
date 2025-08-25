@@ -1,51 +1,82 @@
-# Tercer_punto.py — Commit 1 (versión base 2x2)
+# Tercer_punto.py — Commit 2 (2x2 con obstáculos + BFS)
 # -----------------------------------------------------------------------------
-# Objetivo: laberinto mínimo en un mundo 2x2.
-# Estados: celdas (x,y) con x,y in {0,1}. Inicio = (0,0), Meta = (0,1)
-# Acciones permitidas: -> (derecha) y ↓ (abajo)
-# Esta versión:
-#   1) Define estados, acciones y una función de movimiento determinista.
-#   2) Simula el camino de (0,0) a (0,1) aplicando 'derecha'.
+# Mejoras:
+# 1) Agregamos obstáculo(s) como conjunto de celdas bloqueadas.
+# 2) Implementamos BFS para hallar la ruta más corta (si existe).
+# 3) Probamos el caso con obstáculo en (0,1) (la meta original) y
+#    mostramos que el problema queda bloqueado; luego probamos otra meta.
 # -----------------------------------------------------------------------------
 
-# Tamaño del mundo (2x2)
+from collections import deque
+
 W, H = 2, 2
+ACTIONS = {"derecha": (0, +1), "abajo": (+1, 0)}
 
-# Acciones: desplazamiento (dx, dy) y nombre
-ACTIONS = {
-    "derecha": (0, +1),  # (x,y) -> (x, y+1)
-    "abajo":   (+1, 0),  # (x,y) -> (x+1, y)
-}
+def dentro_mapa(x, y): return 0 <= x < W and 0 <= y < H
 
-def dentro_mapa(x, y):
-    """Chequea que (x,y) caiga dentro del mundo 2x2."""
-    return 0 <= x < W and 0 <= y < H
+def vecinos(celda, obstaculos):
+    """Genera vecinos válidos (aplicando acciones y filtrando obstáculos)."""
+    x, y = celda
+    for nombre, (dx, dy) in ACTIONS.items():
+        nx, ny = x + dx, y + dy
+        if dentro_mapa(nx, ny) and (nx, ny) not in obstaculos:
+            yield (nx, ny), nombre
 
-def mover(estado, accion):
+def bfs_camino(inicio, meta, obstaculos):
     """
-    Función de transición f(estado, acción) -> nuevo_estado.
-    - No hay obstáculos en esta versión.
-    - Si la acción saca del mapa, se queda en el mismo estado.
+    BFS en el grafo implícito del grid 2x2.
+    Retorna (camino, acciones) o (None, None) si no hay ruta.
     """
-    dx, dy = ACTIONS[accion]
-    nx, ny = estado[0] + dx, estado[1] + dy
-    return (nx, ny) if dentro_mapa(nx, ny) else estado
+    q = deque([inicio])
+    padres = {inicio: (None, None)}  # hijo -> (padre, acción)
+    visit  = {inicio}
 
-def simular_basico():
+    while q:
+        u = q.popleft()
+        if u == meta:
+            # reconstruir
+            path, acts = [], []
+            cur = u
+            while cur is not None:
+                p, a = padres[cur]
+                path.append(cur); acts.append(a)
+                cur = p
+            path.reverse()
+            acts = [a for a in reversed(acts)][1:]  # quita None
+            return path, acts
+
+        for v, a in vecinos(u, obstaculos):
+            if v not in visit:
+                visit.add(v)
+                padres[v] = (u, a)
+                q.append(v)
+
+    return None, None
+
+def probar():
     inicio = (0, 0)
-    meta   = (0, 1)
 
-    print("=== LABERINTO 2x2 — versión base ===")
-    print(f"Inicio: {inicio} | Meta: {meta}")
-    print("Acciones disponibles:", list(ACTIONS.keys()))
+    print("=== LABERINTO 2x2 — obstáculos + BFS ===")
+    print("Acciones: derecha, abajo")
 
-    # Camino obvio: una vez a la derecha
-    estado = inicio
-    print(f"Estado actual: {estado}")
-    estado = mover(estado, "derecha")
-    print(f"Aplicar 'derecha' -> {estado}")
+    # Caso A: meta (0,1) y obstáculo en (0,1) → no hay ruta
+    meta = (0, 1)
+    obst = {(0, 1)}  # bloqueamos precisamente la meta
+    print(f"\nCaso A: inicio={inicio}, meta={meta}, obstaculos={obst}")
+    camino, acciones = bfs_camino(inicio, meta, obst)
+    if camino is None:
+        print("Resultado: NO hay camino (la meta está bloqueada).")
 
-    print("¡Meta alcanzada!\n" if estado == meta else "No se alcanzó la meta.\n")
+    # Caso B: probamos otra meta alcanzable (1,1) con el mismo obstáculo
+    meta_b = (1, 1)
+    print(f"\nCaso B: inicio={inicio}, meta={meta_b}, obstaculos={obst}")
+    camino, acciones = bfs_camino(inicio, meta_b, obst)
+    if camino is None:
+        print("Resultado: NO hay camino.")
+    else:
+        print("Acciones:", " -> ".join(acciones))
+        print("Camino:", " -> ".join(map(str, camino)))
+        print("¡Meta alcanzada!")
 
 if __name__ == "__main__":
-    simular_basico()
+    probar()
