@@ -1,40 +1,87 @@
-# Tercer_punto.py — Commit 2 (2x2 con obstáculos + BFS)
+# Tercer_punto.py — Commit 3 (versión final 3x3)
 # -----------------------------------------------------------------------------
-# Mejoras:
-# 1) Agregamos obstáculo(s) como conjunto de celdas bloqueadas.
-# 2) Implementamos BFS para hallar la ruta más corta (si existe).
-# 3) Probamos el caso con obstáculo en (0,1) (la meta original) y
-#    mostramos que el problema queda bloqueado; luego probamos otra meta.
+# Consejos aplicados del enunciado:
+# - Definir estados posibles (grid 3x3).
+# - Listar acciones y crear tabla de transición (si A y acción X -> entonces B).
+# - Usar diccionarios para recompensas (por ejemplo, -1 por paso y +10 al llegar).
+# - Probar con valores fijos antes de hacerlo dinámico.
+# Incluye:
+#   * Obstáculos configurables.
+#   * BFS para encontrar camino mínimo.
+#   * Métricas: nodos expandidos y longitud de camino.
 # -----------------------------------------------------------------------------
 
 from collections import deque
 
-W, H = 2, 2
-ACTIONS = {"derecha": (0, +1), "abajo": (+1, 0)}
+# ---------- Configuración del mundo ----------
+W, H = 3, 3                          # mundo 3x3
+ACCIONES = {                         # desplazamientos
+    "↑": (-1, 0),
+    "→": (0, +1),
+    "↓": (+1, 0),
+    "←": (0, -1),
+}
+OBSTACULOS = {(1, 1)}                # ejemplo: bloqueamos el centro
+INICIO = (0, 0)
+META   = (2, 2)
 
-def dentro_mapa(x, y): return 0 <= x < W and 0 <= y < H
+# ---------- Utilidades ----------
+def dentro(x, y): return 0 <= x < W and 0 <= y < H
 
-def vecinos(celda, obstaculos):
-    """Genera vecinos válidos (aplicando acciones y filtrando obstáculos)."""
-    x, y = celda
-    for nombre, (dx, dy) in ACTIONS.items():
-        nx, ny = x + dx, y + dy
-        if dentro_mapa(nx, ny) and (nx, ny) not in obstaculos:
-            yield (nx, ny), nombre
-
-def bfs_camino(inicio, meta, obstaculos):
+def construir_transiciones(obstaculos):
     """
-    BFS en el grafo implícito del grid 2x2.
-    Retorna (camino, acciones) o (None, None) si no hay ruta.
+    Tabla de transición T[(x,y)][accion] = (nx, ny) o None si no es posible.
+    (Sirve para "ver" el espacio de estados y acciones de forma explícita.)
     """
+    T = {}
+    for x in range(W):
+        for y in range(H):
+            s = (x, y)
+            T[s] = {}
+            if s in obstaculos:      # celdas bloqueadas no tienen sucesores
+                continue
+            for a, (dx, dy) in ACCIONES.items():
+                nx, ny = x + dx, y + dy
+                T[s][a] = (nx, ny) if dentro(nx, ny) and (nx, ny) not in obstaculos else None
+    return T
+
+def recompensas(meta):
+    """
+    Recompensa simple: -1 por paso y +10 al llegar a la meta.
+    (Mapa: (estado, accion, nuevo_estado) -> recompensa)
+    """
+    R = {}
+    for x in range(W):
+        for y in range(H):
+            s = (x, y)
+            for a, (dx, dy) in ACCIONES.items():
+                nx, ny = x + dx, y + dy
+                if not dentro(nx, ny) or (nx, ny) in OBSTACULOS:
+                    continue
+                ns = (nx, ny)
+                R[(s, a, ns)] = 10 if ns == meta else -1
+    return R
+
+# ---------- Búsqueda ----------
+def vecinos(s, T):
+    """Genera (nuevo_estado, acción) usando la tabla de transición T."""
+    if s not in T: return
+    for a, ns in T[s].items():
+        if ns is not None:
+            yield ns, a
+
+def bfs(inicio, meta, T):
+    """BFS con reconstrucción y métricas."""
     q = deque([inicio])
-    padres = {inicio: (None, None)}  # hijo -> (padre, acción)
+    padres = {inicio: (None, None)}
     visit  = {inicio}
+    expandidos = 0
 
     while q:
         u = q.popleft()
+        expandidos += 1
         if u == meta:
-            # reconstruir
+            # reconstrucción
             path, acts = [], []
             cur = u
             while cur is not None:
@@ -42,41 +89,34 @@ def bfs_camino(inicio, meta, obstaculos):
                 path.append(cur); acts.append(a)
                 cur = p
             path.reverse()
-            acts = [a for a in reversed(acts)][1:]  # quita None
-            return path, acts
+            acts = [a for a in reversed(acts)][1:]
+            return path, acts, {"expandidos": expandidos, "long_camino": len(acts)}
 
-        for v, a in vecinos(u, obstaculos):
+        for v, a in vecinos(u, T):
             if v not in visit:
                 visit.add(v)
                 padres[v] = (u, a)
                 q.append(v)
 
-    return None, None
+    return None, None, {"expandidos": expandidos, "long_camino": None}
 
-def probar():
-    inicio = (0, 0)
+# ---------- Demo ----------
+def demo():
+    print("=== LABERINTO 3x3 — versión final ===")
+    print(f"Tamaño: {W}x{H} | Inicio: {INICIO} | Meta: {META} | Obstáculos: {OBSTACULOS}")
 
-    print("=== LABERINTO 2x2 — obstáculos + BFS ===")
-    print("Acciones: derecha, abajo")
+    T = construir_transiciones(OBSTACULOS)
+    R = recompensas(META)  # no usamos R en BFS, solo lo mostramos como ejemplo
 
-    # Caso A: meta (0,1) y obstáculo en (0,1) → no hay ruta
-    meta = (0, 1)
-    obst = {(0, 1)}  # bloqueamos precisamente la meta
-    print(f"\nCaso A: inicio={inicio}, meta={meta}, obstaculos={obst}")
-    camino, acciones = bfs_camino(inicio, meta, obst)
-    if camino is None:
-        print("Resultado: NO hay camino (la meta está bloqueada).")
+    path, acts, stats = bfs(INICIO, META, T)
+    if path is None:
+        print("No hay camino (obstáculos bloquean la meta o el inicio).")
+        return
 
-    # Caso B: probamos otra meta alcanzable (1,1) con el mismo obstáculo
-    meta_b = (1, 1)
-    print(f"\nCaso B: inicio={inicio}, meta={meta_b}, obstaculos={obst}")
-    camino, acciones = bfs_camino(inicio, meta_b, obst)
-    if camino is None:
-        print("Resultado: NO hay camino.")
-    else:
-        print("Acciones:", " -> ".join(acciones))
-        print("Camino:", " -> ".join(map(str, camino)))
-        print("¡Meta alcanzada!")
+    print("Acciones:", " ".join(acts))
+    print("Camino :", " -> ".join(map(str, path)))
+    print(f"Métricas: {stats['expandidos']} nodos expandidos | longitud camino = {stats['long_camino']}")
+    print(f"Ejemplo de recompensas (primeros 5): {list(R.items())[:5]}")
 
 if __name__ == "__main__":
-    probar()
+    demo()
