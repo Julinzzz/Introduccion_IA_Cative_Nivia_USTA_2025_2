@@ -1,115 +1,185 @@
 """
-01_apf_basico_inicio.py
+02_apf_bdi_astar_simple_mitad.py
 ----------------------------------
-Versión INICIAL (commit 1)
-- Campos de Potencial Artificial (APF) puro.
-- Sin BDI, sin A*, sin chequeos de colisión.
-- Puede atascarse en mínimos locales (herradura).
+Versión INTERMEDIA (commit 2)
+- Integra BDI + A* para crear un waypoint de escape.
+- Movimiento: APF + empuje directo al (sub)objetivo.
+- Sin control de clearance/colisión (puede cortar esquinas).
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from collections import deque
+import heapq
 
-# Parámetros del campo de potencial
-K_atractivo = 0.5
-K_repulsivo = 3.0
-radio_repulsion = 3.0
+# --- Parámetros ---
+K_ATR, K_REP, RADIO_REP = 0.5, 3.5, 3.0
+ALPHA_APF = 0.12
+BETA_WAYPOINT = 0.45
+WINDOW = 14
+UMBRAL_GRAD = 0.05
+UMBRAL_MEJORA_DIST = 0.02
+UMBRAL_MOV = 0.03
 
-# Función para calcular el campo de potencial
-def calcular_potencial(posicion_agente, objetivo, obstaculos, epsilon=0.25):
-    # Potencial de atracción hacia el objetivo
-    potencial_atractivo = 0.5 * K_atractivo * np.linalg.norm(objetivo - posicion_agente)**2
-    
-    # Potencial de repulsión de los obstáculos
-    potencial_repulsivo = 0
-    for obstaculo in obstaculos:
-        distancia = np.linalg.norm(posicion_agente - obstaculo)
-        if 1 <= distancia < radio_repulsion:
-            potencial_repulsivo += 0.5 * K_repulsivo * (1 / distancia - 1 / radio_repulsion)**2
-        elif epsilon < distancia < 1:
-            potencial_repulsivo += 0.5 * K_repulsivo * (1 / distancia - 1 / radio_repulsion)
-        else:
-            potencial_repulsivo += 0
+GRID_MIN, GRID_MAX = 0, 15
+MOVES_8 = [(1,0),(-1,0),(0,1),(0,-1),(1,1),(1,-1),(-1,1),(-1,-1)]
+WAYPOINT_DIST = 0.7
 
-    # Potencial total como suma de los potenciales de atracción y repulsión
-    potencial_total = potencial_atractivo + potencial_repulsivo
-    return potencial_total
+def potencial_total(p, g, obs, eps=0.25):
+    U_attr = 0.5 * K_ATR * np.linalg.norm(g - p)**2
+    U_rep = 0.0
+    for o in obs:
+        d = np.linalg.norm(p - o)
+        if 1 <= d < RADIO_REP:
+            U_rep += 0.5 * K_REP * (1/d - 1/RADIO_REP)**2
+        elif eps < d < 1:
+            U_rep += 0.5 * K_REP * (1/d - 1/RADIO_REP)
+    return U_attr + U_rep
 
-# Función para calcular el gradiente del campo de potencial en un punto dado
-def calcular_gradiente(posicion_agente, objetivo, obstaculos, epsilon=0.15):
-    gradiente = np.zeros(2)
+def gradiente(p, g, obs, h=0.12):
+    grad = np.zeros(2)
     for i in range(2):
-        delta_pos = np.zeros(2)
-        delta_pos[i] = epsilon
-        potencial_pos = calcular_potencial(posicion_agente + delta_pos, objetivo, obstaculos)
-        potencial_neg = calcular_potencial(posicion_agente - delta_pos, objetivo, obstaculos)
-        gradiente[i] = (potencial_pos - potencial_neg) / (2 * epsilon)
-    return gradiente
+        dp = np.zeros(2); dp[i] = h
+        grad[i] = (potencial_total(p+dp, g, obs) - potencial_total(p-dp, g, obs)) / (2*h)
+    return grad
 
-# Función de actualización para la animación
-def update(frame):
-    global agente_posicion, historial_energia_potencial
-    # Calcula el gradiente del campo de potencial en la posición actual del agente
-    gradiente = calcular_gradiente(agente_posicion, objetivo, obstaculos)
-    # Actualiza la posición del agente en función del gradiente
-    agente_posicion -= gradiente * 0.1  # Multiplicamos por un factor de aprendizaje para controlar la velocidad de movimiento
-    
-    # Calcula y almacena la energía potencial en el historial
-    energia_potencial = calcular_potencial(agente_posicion, objetivo, obstaculos)
-    historial_energia_potencial.append(energia_potencial)
-    
-    
-    # Actualiza la posición del agente en la visualización
+# --- A* simple (sin clearance) ---
+def a_star(start_xy, goal_xy, obst_set):
+    def h(a,b): return np.hypot(a[0]-b[0], a[1]-b[1])
+    start = tuple(map(int, map(round, start_xy)))
+    goal  = tuple(map(int, map(round, goal_xy)))
+    openh = [(h(start,goal), 0.0, start, None)]
+    came, gcost = {}, {start: 0.0}
+    while openh:
+        f,g,u,parent = heapq.heappop(openh)
+        if u in came: continue
+        came[u] = parent
+        if u == goal: break
+        for dx,dy in MOVES_8:
+            v = (u[0]+dx, u[1]+dy)
+            if not (GRID_MIN <= v[0] <= GRID_MAX and GRID_MIN <= v[1] <= GRID_MAX): continue
+            if v in obst_set: continue
+            # evitar cortar esquinas diagonales por celdas bloqueadas inmediatas
+            if dx!=0 and dy!=0:
+                if (u[0]+dx, u[1]) in obst_set or (u[0], u[1]+dy) in obst_set: continue
+            ng = g + np.hypot(dx,dy)
+            if v not in gcost or ng < gcost[v]:
+                gcost[v] = ng
+                heapq.heappush(openh, (ng + h(v,goal), ng, v, u))
+    if goal not in came: return []
+    path, cur = [goal], goal
+    while came[cur] is not None:
+        cur = came[cur]; path.append(cur)
+    return list(reversed(path))
+
+def waypoint_seguro(path, p_actual):
+    if not path: return None
+    pa = tuple(map(int, map(round, p_actual)))
+    for node in path[3:] + path[-1:]:
+        if np.hypot(node[0]-pa[0], node[1]-pa[1]) >= 2.0:
+            return np.array(node, dtype=float)
+    k = min(3, len(path)-1)
+    return np.array(path[k], dtype=float)
+
+class AgenteBDI:
+    def __init__(self, p0, g, obs):
+        self.p = p0.astype(float)
+        self.G_REAL = g.astype(float)
+        self.G_ACTUAL = g.astype(float)
+        self.obs = obs.astype(float)
+        self.obs_set = {tuple(map(int, o)) for o in obs}
+        self.histU, self.histDist, self.histPos = [], deque(maxlen=WINDOW), deque(maxlen=WINDOW)
+        self.intencion = "seguir_gradiente"
+        self.waypoint, self.path = None, []
+        self.first_tick = True
+
+    def actualizar_creencias(self):
+        U = potencial_total(self.p, self.G_ACTUAL, self.obs)
+        self.histU.append(U)
+        self.histPos.append(self.p.copy())
+        self.dist_obj = np.linalg.norm(self.G_REAL - self.p)
+        self.histDist.append(self.dist_obj)
+        self.grad = gradiente(self.p, self.G_ACTUAL, self.obs)
+
+    def estancado(self):
+        if len(self.histDist) < WINDOW: return False
+        cond_grad = np.linalg.norm(self.grad) < UMBRAL_GRAD
+        mejoras = np.diff(np.array(self.histDist))
+        mejora_media = -np.mean(np.clip(mejoras, -np.inf, 0))
+        movs = [np.linalg.norm(self.histPos[i]-self.histPos[i-1]) for i in range(1,len(self.histPos))]
+        mov_media = np.mean(movs) if movs else 1.0
+        return cond_grad or (mejora_media < UMBRAL_MEJORA_DIST) or (mov_media < UMBRAL_MOV)
+
+    def plan_escape(self):
+        self.path = a_star(self.p, self.G_REAL, self.obs_set)
+        if not self.path:
+            fallback = (int(GRID_MAX-1), int(GRID_MAX-1))
+            self.path = a_star(self.p, fallback, self.obs_set)
+        wp = waypoint_seguro(self.path, self.p)
+        if wp is not None:
+            self.waypoint = wp
+            self.G_ACTUAL = self.waypoint
+            self.intencion = "escapar_minimo"
+
+    def revisar_cambio_objetivo(self):
+        if self.intencion == "escapar_minimo" and np.linalg.norm(self.p - self.G_ACTUAL) < WAYPOINT_DIST:
+            self.waypoint = None
+            self.G_ACTUAL = self.G_REAL
+            self.intencion = "seguir_gradiente"
+
+    def actuar(self):
+        # Movimiento sin chequeo de colisiones (se corrige en la versión final)
+        dir_goal = self.G_ACTUAL - self.p
+        n = np.linalg.norm(dir_goal)
+        if n > 1e-9: dir_goal /= n
+        delta = -ALPHA_APF * self.grad + BETA_WAYPOINT * dir_goal
+        self.p += delta
+
+    def tick(self):
+        if self.first_tick:
+            self.plan_escape()           # fuerza un plan de escape inicial (más estable)
+            self.first_tick = False
+
+        self.actualizar_creencias()
+        if self.estancado() and self.intencion != "escapar_minimo":
+            self.plan_escape()
+        self.revisar_cambio_objetivo()
+        self.actuar()
+
+# --- Escenario (herradura) ---
+P0 = np.array([1.0, 1.0])
+G  = np.array([12.0, 12.0])
+OBS = np.array([
+    [2,2],[2,3],[2,4],[2,5],[2,6],[2,7],[2,8],[2,9],[2,10],
+    [3,2],[3,3],[3,4],[3,5],[3,6],[3,7],[3,8],[3,9],[3,10],
+    [4,9],[5,9],[6,9],[7,9],[8,9],
+    [9,2],[9,3],[9,4],[9,5],[9,6],[9,7],[9,8],[9,9],
+    [10,2],[10,3],[10,4],[10,5],[10,6],[10,7],[10,8],[10,9],[10,10]
+])
+
+agent = AgenteBDI(P0, G, OBS)
+
+# --- Visualización ---
+fig, (ax, ax2) = plt.subplots(1, 2, figsize=(12,5))
+def update(_):
+    agent.tick()
     ax.clear()
-    ax.scatter(agente_posicion[0], agente_posicion[1], color='red', marker='o', s=200)  # Dibuja la posición del agente
-    ax.scatter(objetivo[0], objetivo[1], color='green', marker='x', s=100)  # Dibuja el objetivo
-    for obstaculo in obstaculos:
-        ax.scatter(obstaculo[0], obstaculo[1], color='black', marker='x', s=100)  # Dibuja los obstáculos
-    ax.set_xlim(0, 15)
-    ax.set_ylim(0, 15)
-    ax.set_title('Movimiento del Agente hacia el Objetivo')
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    
-    # Muestra la energía potencial a lo largo del tiempo
-    ax2.clear()
-    ax2.plot(historial_energia_potencial, label='Energía Potencial')
-    ax2.set_title('Evolución de la Energía Potencial')
-    ax2.set_xlabel('Iteración')
-    ax2.set_ylabel('Energía Potencial')
-    ax2.legend()
+    for o in OBS: ax.scatter(o[0], o[1], c='black', marker='x', s=80)
+    ax.scatter(agent.p[0], agent.p[1], c='red', s=200, label="Agente")
+    ax.scatter(agent.G_REAL[0], agent.G_REAL[1], c='green', marker='x', s=120, label="Objetivo real")
+    if agent.waypoint is not None:
+        ax.scatter(agent.waypoint[0], agent.waypoint[1], c='orange', marker='*', s=160, label="Waypoint A*")
+        if agent.path:
+            xs, ys = zip(*agent.path)
+            ax.plot(xs, ys, linestyle='--', linewidth=1, alpha=0.6)
+    ax.set_xlim(0,15); ax.set_ylim(0,15); ax.legend(loc="upper left", fontsize=8)
+    ax.set_title(f"APF + BDI + A* (modo: {agent.intencion})"); ax.set_xlabel("x"); ax.set_ylabel("y")
 
-# Configuración inicial de la visualización
-fig, (ax, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+    ax2.clear(); ax2.plot(agent.histU, label="Energía Potencial")
+    ax2.set_title("Evolución de la Energía Potencial"); ax2.legend()
 
-# Parámetros y variables iniciales
-agente_posicion = np.array([1.0, 1.0])  # Posición inicial del agente
-objetivo = np.array([12, 12])  # Posición del objetivo
-#Prueba con Varios Obstáculos
-#obstaculos = np.array([[3, 4], [8, 6]])  # Posiciones de los obstáculos-Número= 2 Obstáculos
-#obstaculos = np.array([[3, 4],[5, 5], [8, 6]])  # Posiciones de los obstáculos-Número= 3 Obstáculos
-#obstaculos = np.array([[3, 4],[6, 5], [8, 8],[10,9]])  # Posiciones de los obstáculos-Número= 4 Obstáculos
-#obstaculos = np.array([[3, 4],[6, 5], [8, 8],[10,9],[11,10],[12,10]])  # Posiciones de los obstáculos-Número= 6 Obstáculos
-#Obstáculos más complejos
-#obstaculos = np.array([[2, 3],[2, 4],[3, 3],[3,4],[4, 5],[4, 6],[5, 5],[5,6],[6, 7],[6, 8], [7, 7],[7,8],[8, 9],[8, 10], [9, 9],[9,10],[10,10],[11,11]])  # Posiciones de los obstáculos-Número= 18 Obstáculos
-#obstaculos = np.array([[2, 3],[2, 4],[3, 3],[3,4],[4,3],[4,4],[5,3],[5,4],  [4, 5],[4, 6], [5, 5],[5,6],[6, 7],[6, 8], [7, 7],[7,8],[8,7],[8,8],[9,7],[9,8],[8, 9],[8, 10], [9, 9],[9,10],[10,10],[10,11],[11,10],[11,11]])  # Posiciones de los obstáculos-Número= 28 Obstáculos
-#obstaculos = np.array([[2, 3],[2, 4],[3, 3],[3,4],[4,3],[4,4],[5,3],[5,4],  [7, 5],[7, 6],[8, 5],[8,6],  [9, 7],[9, 7],[10, 8],[10,8], [11, 7],[11, 8],[12, 7],[12,8]])  # Posiciones de los obstáculos-Número= 18 Obstáculos
-#obstaculos = np.array([[2, 3],[2, 4],[3, 3],[3,4], [5,3],[5,4],[6,3],[6,4], [5, 5],[5, 6],[6, 5],[6,6],  [7, 5],[7, 6],[8, 5],[8,6],  [5, 9],[5, 10],[6, 9],[6,10],  [7, 9],[7, 10],[8, 9],[8,10], [10, 8],[10, 9],[11, 8],[11,9], [12, 8],[12, 9],[13, 8],[13,9]])  # Posiciones de los obstáculos-Número= 28 Obstáculos
-#Ejercicio que no puede resolver
-#obstaculos = np.array([[2, 3],[2, 4],[3, 3],[3,4],[4, 5],[4, 6], [5, 5],[5,6],[6, 7],[6, 8], [7, 7],[7,8],[8,5],[8,6],[9,5],[9,6],[8, 9],[8, 10], [9, 9],[9,10],[10,10],[11,11]])  # Posiciones de los obstáculos-Número= 22 Obstáculos
-
-#Herradura
-obstaculos = np.array([[2, 2],[2, 3], [2, 4],[2, 5],[2, 6],[2, 7],[2, 8],[2, 9], [2, 10],[10, 10], 
-                        [10, 9],[10, 8],[10, 7],[10, 6],[10, 5],[10, 4],[10, 3],[10, 2], 
-                        [9, 2], [9, 3],[9, 4],[9, 5],[9, 6],[9, 7],[9, 8],[9, 9], 
-                        [3, 9],[3, 8],[3, 7],[3, 6],[3, 5],[3, 4],[3, 3], [3, 2],
-                        [4,9],[5,9],[6,9],[7,9],[8,9],[3,10],[4,10],[5,10],[6,10],
-                        [7,10],[8,10],[9,10]])
-
-
-historial_energia_potencial = []  # Historial de la energía potencial
-
-# Generación de la animación
-ani = FuncAnimation(fig, update, frames=200, interval=200)
-plt.show()
+ani = FuncAnimation(fig, update, frames=320, interval=120)
+plt.tight_layout()
+if __name__ == "__main__":
+    plt.show()
