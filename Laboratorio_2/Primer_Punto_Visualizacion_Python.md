@@ -293,7 +293,9 @@ El método de **campos de potencial artificial (Artificial Potential Fields, APF
 
 El robot sigue la trayectoria resultante de la suma de ambos campos:
 
-\[ec{F}_{nav} = ec{F}_{atracción} + ec{F}_{repulsión}\]
+\[
+\vec{F}_{nav} = \vec{F}_{atracción} + \vec{F}_{repulsión}
+\]
 
 **Ventajas:**  
 - Simple de implementar.  
