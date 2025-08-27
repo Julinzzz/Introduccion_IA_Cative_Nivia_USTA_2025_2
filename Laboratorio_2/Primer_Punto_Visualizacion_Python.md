@@ -373,3 +373,180 @@ print("Intenciones seleccionadas:", intenciones)
 - Wooldridge, M. (2002). *An Introduction to MultiAgent Systems*. Wiley.  
 - Bratman, M. (1987). *Intentions, Plans, and Practical Reason*. Harvard University Press.  
 - Khatib, O. (1986). *Real-time obstacle avoidance for manipulators and mobile robots*. The International Journal of Robotics Research, 5(1), 90-98.  
+
+
+# Punto 3 — Salir de la “herradura” con APF + BDI + A* (versión segura)
+
+> **Objetivo.** Documentar detalladamente la estrategia implementada en `03e_apf_bdi_astar_seguro_move.py` para que un agente que usa **Campos de Potencial Artificial (APF)** **no** quede atrapado en un mínimo local con forma de *herradura*.  
+> La solución final integra **BDI (Belief–Desire–Intention)** con un planificador **A\*** y un **control de colisión** basado en *clearance* + *line‑search* del paso.
+
+---
+
+## 1. Idea general
+
+1) **APF** aporta atracción al objetivo y repulsión de obstáculos.  
+2) **BDI** detecta **estancamiento** y cambia de intención: de `seguir_gradiente` a `escapar_minimo`.  
+3) En modo *escape*, el agente llama a **A\*** en una rejilla para planear una **ruta** y fija un **waypoint** seguro.  
+4) El movimiento se calcula con un **delta compuesto** (APF + empuje directo al (sub)objetivo) y se valida con un **chequeo de colisión**: si el segmento propuesto `p → p'` invade el *clearance* de algún obstáculo, se reduce el paso (*line‑search*) o se avanza **nodo-a-nodo** por la ruta de A\*.
+
+---
+
+## 2. Parámetros principales
+
+```python
+K_ATR, K_REP, RADIO_REP = 0.5, 3.5, 3.0   # ganancias APF
+ALPHA_APF = 0.12                           # paso por gradiente APF
+BETA_WAYPOINT = 0.55                       # empuje directo a (sub)objetivo
+WINDOW = 16                                # ventana para detectores
+UMBRAL_GRAD = 0.05                         # ||∇U|| pequeño
+UMBRAL_MEJORA_DIST = 0.02                  # mejora media de distancia insuficiente
+UMBRAL_MOV = 0.03                          # poca movilidad
+MAX_SIN_MEJORA = 60                        # replanificar si no mejora
+
+WAYPOINT_DIST = 0.7
+CLEARANCE = 0.55                           # radio de seguridad
+MIN_STEP = 1e-5                            # paso mínimo en line-search
+LS_SHRINK = 0.5                            # factor de reducción
+```
+
+**Lectura rápida:** `BETA_WAYPOINT` empuja hacia el (sub)objetivo; `CLEARANCE` evita “rozar” obstáculos; `MIN_STEP` evita congelarse durante la búsqueda de paso seguro.
+
+---
+
+## 3. Componentes del algoritmo
+
+### 3.1 APF: potencial y gradiente
+
+```python
+def potencial_total(p, g, obs, eps=0.25):
+    U_attr = 0.5 * K_ATR * np.linalg.norm(g - p) ** 2
+    U_rep = 0.0
+    for o in obs:
+        d = np.linalg.norm(p - o)
+        if 1 <= d < RADIO_REP:
+            U_rep += 0.5 * K_REP * (1/d - 1/RADIO_REP) ** 2
+        elif eps < d < 1:
+            U_rep += 0.5 * K_REP * (1/d - 1/RADIO_REP)
+    return U_attr + U_rep
+
+def gradiente(p, g, obs, h=0.12):
+    grad = np.zeros(2)
+    for i in range(2):
+        dp = np.zeros(2); dp[i] = h
+        grad[i] = (potencial_total(p+dp, g, obs) - potencial_total(p-dp, g, obs)) / (2*h)
+    return grad
+```
+
+El robot sigue la trayectoria resultante de la suma de ambos campos:
+
+$$\vec { F } _ { n a v } = \vec { F } _ { a t t } + \vec { F } _ { r e p }$$
+
+- Atracción cuadrática al objetivo.  
+- Repulsión activa solo cerca de cada obstáculo.  
+- Gradiente aproximado numéricamente (diferencias centrales).
+
+### 3.2 Chequeo de colisión: *clearance* + distancia punto‑segmento
+
+```python
+def dist_point_segment(q, a, b):
+    ab = b - a
+    den = np.dot(ab, ab)
+    t = 0.0 if den < 1e-12 else np.clip(np.dot(q - a, ab) / den, 0, 1)
+    proj = a + t * ab
+    return np.linalg.norm(q - proj)
+
+def segmento_seguro(a, b, obstaculos, clearance=CLEARANCE):
+    for o in obstaculos:
+        if dist_point_segment(o, a, b) < clearance:
+            return False
+    return True
+```
+
+### 3.3 A*: ruta global y **waypoint** seguro
+
+```python
+def a_star(start_xy, goal_xy, obst_set):
+    # A* en rejilla con 8 movimientos, evitando cortar esquinas en diagonales
+    ...
+    return list(reversed(path))
+
+def waypoint_seguro(path, p_actual, obst_set):
+    # Elige un nodo varios pasos por delante y no adyacente a obstáculos.
+    ...
+    return np.array(node, dtype=float)
+```
+
+### 3.4 Arquitectura **BDI**
+
+```python
+class AgenteBDI:
+    # B (creencias): posición, gradiente, energía, distancia, historia
+    # D (deseos): llegar al objetivo sin colisiones
+    # I (intenciones): seguir_gradiente | escapar_minimo
+```
+
+Cuando hay estancamiento → **plan_escape()**: llama A\*, fija `self.waypoint` y cambia a `escapar_minimo`.  
+Si ya alcanzó el waypoint → **revisar_cambio_objetivo()**: vuelve a `seguir_gradiente` con el objetivo real.
+
+### 3.5 Movimiento **seguro** con *line‑search* y ruta A\***
+
+```python
+def paso_seguro(self, delta):
+    lam = 1.0
+    while lam > MIN_STEP:
+        b = self.p + lam * delta
+        if segmento_seguro(self.p, b, self.obs, CLEARANCE):
+            return lam * delta
+        lam *= LS_SHRINK
+    return None
+
+def follow_path_step(self):
+    # Paso corto hacia el siguiente nodo de la ruta de A*,
+    # también validado con 'paso_seguro'.
+    ...
+```
+
+---
+
+## 4. Ciclo del agente (resumen)
+
+```python
+def tick(self):
+    if self.first_tick:
+        self.plan_escape()
+
+    prev = getattr(self, "dist_obj", np.inf)
+    self.actualizar_creencias()
+
+    if (self.estancado() or self.sin_mejora > MAX_SIN_MEJORA) and self.intencion != "escapar_minimo":
+        self.plan_escape()
+
+    self.revisar_cambio_objetivo()
+    self.actuar()
+```
+**Resultado:** el agente **sale de la herradura** sin tocar obstáculos y converge hacia el objetivo. La **energía potencial** decrece y se estabiliza.
+
+---
+
+## 5. Cómo ejecutar
+
+Requisitos: `numpy`, `matplotlib`.
+
+```bash
+python 03e_apf_bdi_astar_seguro_move.py
+```
+
+---
+
+## 6. Parámetros ajustables
+
+- **Más empuje** al subobjetivo: `BETA_WAYPOINT = 0.6`.  
+- **Más seguridad** frente a obstáculos: subir `CLEARANCE` (p. ej. `0.6–0.7`).  
+- **Menos “timidez”** cerca de paredes: bajar un poco `CLEARANCE` (p. ej. `0.5`) o subir `BETA_WAYPOINT`.  
+- **Si se frena** por el line‑search: bajar `MIN_STEP` o subir `ALPHA_APF` levemente.
+
+---
+
+## 7. Nota final
+
+La combinación **cognitiva (BDI)** para cambiar de intención + **planificación global (A\*)** para evitar mínimos locales + **control local seguro** con *clearance* y *line‑search* ofrece una solución **simple, robusta y reproducible** para escenarios clásicos donde el APF puro falla.
