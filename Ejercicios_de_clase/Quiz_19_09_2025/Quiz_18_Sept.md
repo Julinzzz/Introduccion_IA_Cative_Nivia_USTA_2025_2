@@ -1,4 +1,4 @@
-# Quiz_18_Sept
+# Nivia Julian - Quiz_18_Sept
 
 Este documento explica el desarrollo del **Problema del Agente Viajero (TSP)** utilizando un **Algoritmo Genético (GA)** en Python, tal como se planteó en el quiz práctico.
 
