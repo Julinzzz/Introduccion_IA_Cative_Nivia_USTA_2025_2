@@ -1,16 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-TSP con Algoritmo Genético (GA) — versión didáctica
-- distancia_ruta: suma euclidiana cerrando el ciclo
-- crear_poblacion_inicial: permutaciones aleatorias
-- seleccion: torneo (k configurable)
-- cruce: OX (Ordered Crossover)
-- mutacion: intercambio (swap) con tasa por individuo
-- GA principal con elitismo
-
-Probado en Python 3.8+ (sin dependencias externas).
-"""
-
 import math
 import random
 from typing import Dict, List, Tuple
