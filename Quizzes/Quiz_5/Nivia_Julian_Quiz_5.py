@@ -26,7 +26,6 @@
 # - Métricas de cobertura y penalizaciones.
 # - Gráficos: mapa de probabilidad y trayectorias óptimas.
 # --------------------------------------------------------------
-
 import numpy as np
 import matplotlib.pyplot as plt
 
