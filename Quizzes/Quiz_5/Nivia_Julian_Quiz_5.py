@@ -1,9 +1,9 @@
-# pso_drones_busqueda.py
+# Nivia_Julian_Quiz_5.py
 # --------------------------------------------------------------
 # Introducción a IA: Coordinación de drones con PSO para búsqueda
-# Autor: (tu nombre)
+# Autor: Julian Nivia
 # --------------------------------------------------------------
-# Supuestos (razonables para un contexto introductorio):
+# Supuestos:
 # - Área cuadrada 5 km x 5 km -> coordenadas [0, 5000] m.
 # - 10 drones, todos parten desde (0,0) al mismo tiempo.
 # - Velocidad constante por dron: 12 m/s.
@@ -11,9 +11,9 @@
 # - Presupuesto de recorrido por dron = speed * time = 86.4 km (muy amplio para 5x5 km),
 #   pero igualmente se respeta y se penaliza si se excede.
 # - Cada dron visita W waypoints; el sensor "cubre" un disco de 200 m alrededor
-#   de cada waypoint (buena aproximación si se vuela patrón de búsqueda local).
+#   de cada waypoint.
 # - El mapa de probabilidad se genera como mezcla de varias "zonas calientes"
-#   (gaussianas) + ruido suave (puedes reemplazarlo por un mapa real si lo tienes).
+#   (gaussianas) + ruido suave.
 #
 # Objetivo de optimización:
 # - Maximizar la probabilidad total cubierta (unión de celdas cubiertas por cualquier dron),
