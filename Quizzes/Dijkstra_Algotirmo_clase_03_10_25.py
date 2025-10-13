@@ -1,4 +1,4 @@
-# punto3_circuito_solver_dijkstra.py
+# Cative - Nivia - Quiz Dijkstra
 # ---------------------------------------------------------------
 # Solver robusto para el circuito (Dijkstra + movimiento seguro)
 # - Reintenta automáticamente si no hay camino (baja CLEARANCE y permite/evita cortar esquinas)
