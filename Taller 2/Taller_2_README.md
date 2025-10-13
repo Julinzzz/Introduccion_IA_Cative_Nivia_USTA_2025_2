@@ -1,9 +1,11 @@
 
 # Taller de Introducción a la IA — **Evolución Pokémon, Recomendador tipo Spotify y Controlador de Robot de Carreras**
 
-**Autor:** Julián Yesid Nivia Méndez Y Cristian Camilo Cative Jimenez 
-**Curso:** Introducción a la Inteligencia Artificial  
-**Lenguaje:** Python 3.x
+**Autor:** Julián Yesid Nivia Méndez y Cristian Camilo Cative Jimenez.
+
+**Curso:** Introducción a la Inteligencia Artificial.
+
+**Lenguaje:** Python.
 
 ---
 
