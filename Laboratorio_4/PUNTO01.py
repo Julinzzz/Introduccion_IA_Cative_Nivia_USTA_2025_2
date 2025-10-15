@@ -9,95 +9,55 @@ N_DRONES = 60
 ITERATIONS = 100
 FAILURE_ITER = 50   # en qué iteración falla un dron
 FAILURE_INDEX = 5   # índice del dron que falla
-OBSTACLES = [(0, 0, 2.5), (5, -3, 2), (-4, 4, 1.5)]  # (x,y,radio)
 
 # Parámetros PSO
-W = 0.7     # inercia
-C1 = 1.5    # coeficiente cognitivo
-C2 = 1.5    # coeficiente social
+W = 0.5
+C1 = 1.2
+C2 = 0.3
+OBSTACLES = [(0, 0, 2)]  # ejemplo: obstáculo circular en el centro
 
 # ------------------------------
 # Clases
 # ------------------------------
 class Drone:
-    def __init__(self, idx, position, target):
+    def __init__(self, idx, position):
         self.idx = idx
         self.position = np.array(position, dtype=float)
-        self.velocity = np.random.uniform(-1, 1, size=2) * 0.5
-        self.target = np.array(target, dtype=float)
-        self.pbest = self.position.copy()
+        self.velocity = np.random.rand(2) * 0.5
         self.alive = True
 
-    def fitness(self, pos):
-        return np.linalg.norm(pos - self.target)
-
-    def update(self, gbest, drones):
-        if not self.alive:
-            return
-
-        # Evaluar fitness
-        if self.fitness(self.position) < self.fitness(self.pbest):
-            self.pbest = self.position.copy()
-
-        # Actualizar velocidad con PSO
-        r1, r2 = np.random.rand(2)
-        cognitive = C1 * r1 * (self.pbest - self.position)
-        social = C2 * r2 * (gbest - self.position)
-        self.velocity = W * self.velocity + cognitive + social
-
-        # Evitar colisiones entre drones
-        for other in drones:
-            if other.idx != self.idx and other.alive:
-                dist_vec = self.position - other.position
-                dist = np.linalg.norm(dist_vec)
-                if dist < 0.8 and dist > 1e-6:
-                    self.velocity += 0.1 * (dist_vec / dist)
-
-        # Evitar obstáculos
-        for ox, oy, r in OBSTACLES:
-            diff = self.position - np.array([ox, oy])
-            dist = np.linalg.norm(diff)
-            if dist < r + 1.0:  # margen de seguridad
-                self.velocity += 0.3 * (diff / (dist + 1e-6))
-
-        # Actualizar posición
-        self.position += self.velocity * 0.1
-
+    def move(self):
+        if self.alive:
+            self.position += self.velocity * 0.1
 
 class Swarm:
-    def __init__(self, n, formation="linea"):
+    def __init__(self, n, formation="estrella"):
+        self.drones = [Drone(i, np.random.rand(2) * 15 - 7.5) for i in range(n)]
         self.formation = formation
         self.targets = self.generate_targets(formation)
-        self.drones = []
-
-        # Inicializar drones distribuidos en círculo
-        R_init = 12
-        angles = np.linspace(0, 2*np.pi, n, endpoint=False)
-        for i, ang in enumerate(angles):
-            pos = np.array([R_init*np.cos(ang), R_init*np.sin(ang)])
-            self.drones.append(Drone(i, pos, self.targets[i]))
+        self.pbest = [d.position.copy() for d in self.drones]
+        self.gbest = np.mean([d.position for d in self.drones], axis=0)
 
     def generate_targets(self, formation):
-        # --- (igual que tu código original, no modificado) ---
         if formation == "estrella":
             pts = []
-            R = 6
-            r = 2.5
+            R = 6   # radio externo
+            r = 2.5 # radio interno
             angles = np.linspace(0, 2*np.pi, 10, endpoint=False)
             for i, a in enumerate(angles):
                 if i % 2 == 0:
                     pts.append(np.array([R*np.cos(a - np.pi/2), R*np.sin(a - np.pi/2)]))
                 else:
                     pts.append(np.array([r*np.cos(a - np.pi/2), r*np.sin(a - np.pi/2)]))
+            # bordes
             extended_pts = []
             for i in range(len(pts)):
-                start = pts[i]
-                end = pts[(i+1) % len(pts)]
+                start, end = pts[i], pts[(i+1)%len(pts)]
                 line_x = np.linspace(start[0], end[0], 4)
                 line_y = np.linspace(start[1], end[1], 4)
                 for j in range(len(line_x)):
                     extended_pts.append(np.array([line_x[j], line_y[j]]))
-            idxs = np.linspace(0, len(extended_pts)-1, N_DRONES).astype(int)
+            idxs = np.linspace(0, len(extended_pts)-1, len(self.drones)).astype(int)
             return [extended_pts[i] for i in idxs]
 
         elif formation == "robot":
@@ -123,7 +83,7 @@ class Swarm:
             pts.append(np.array([-2, side/2 + 2]))
             pts.append(np.array([1, side/2 + 1]))
             pts.append(np.array([2, side/2 + 2]))
-            idxs = np.linspace(0, len(pts)-1, N_DRONES).astype(int)
+            idxs = np.linspace(0, len(pts)-1, len(self.drones)).astype(int)
             return [pts[i] for i in idxs]
 
         elif formation == "dragon":
@@ -145,27 +105,36 @@ class Swarm:
             tail_x = np.sin(tail_y) * 0.8
             for i in range(len(tail_y)):
                 pts.append(np.array([tail_x[i], tail_y[i]]))
-            head = [
-                np.array([0, 3.5]),
-                np.array([0.3, 3.2]),
-                np.array([-0.3, 3.2])
-            ]
+            head = [np.array([0, 3.5]), np.array([0.3, 3.2]), np.array([-0.3, 3.2])]
             pts.extend(head)
-            idxs = np.linspace(0, len(pts)-1, N_DRONES).astype(int)
+            idxs = np.linspace(0, len(pts)-1, len(self.drones)).astype(int)
             return [pts[i] for i in idxs]
-
         else:
             raise ValueError("Formación no reconocida")
 
     def step(self, iteration, failure_iter, failure_idx):
-        if iteration == failure_iter:
-            self.drones[failure_idx].alive = False
-
-        # Mejor global para cada dron es su propio target (figura fija)
-        for drone in self.drones:
+        for i, drone in enumerate(self.drones):
+            if iteration == failure_iter and i == failure_idx:
+                drone.alive = False
             if drone.alive:
-                gbest = drone.target
-                drone.update(gbest, self.drones)
+                target = self.targets[i]
+                r1, r2 = np.random.rand(), np.random.rand()
+                cognitive = C1 * r1 * (target - drone.position)
+                social = C2 * r2 * (self.gbest - drone.position)
+                drone.velocity = W*drone.velocity + cognitive + social
+                # evitar obstáculos
+                for (ox, oy, r) in OBSTACLES:
+                    diff = drone.position - np.array([ox, oy])
+                    dist = np.linalg.norm(diff)
+                    if dist < r+1.5:
+                        drone.velocity += diff * 0.3
+                drone.move()
+                # actualizar mejor personal
+                if np.linalg.norm(drone.position - target) < np.linalg.norm(self.pbest[i] - target):
+                    self.pbest[i] = drone.position.copy()
+        alive_positions = [d.position for d in self.drones if d.alive]
+        if alive_positions:
+            self.gbest = np.mean(alive_positions, axis=0)
 
 # ------------------------------
 # Animación
@@ -173,18 +142,12 @@ class Swarm:
 def animate_swarm(swarm, iterations, failure_iter, failure_idx, filename):
     fig, ax = plt.subplots()
     ax.set_xlim(-15, 15)
-    ax.set_ylim(-12, 12)
+    ax.set_ylim(-10, 12)
     ax.set_aspect("equal")
 
     alive_sc = ax.scatter([], [], c="blue", label="Drones activos")
     dead_sc = ax.scatter([], [], c="red", label="Drones fallidos")
     target_sc = ax.scatter([], [], c="green", marker="x", label="Objetivos")
-
-    # Dibujar obstáculos
-    for ox, oy, r in OBSTACLES:
-        circle = plt.Circle((ox, oy), r, color="gray", alpha=0.3)
-        ax.add_patch(circle)
-
     ax.legend()
 
     def init():
@@ -217,7 +180,7 @@ def animate_swarm(swarm, iterations, failure_iter, failure_idx, filename):
 # Main
 # ------------------------------
 def main():
-    formations = ["dragon", "robot", "estrella"]
+    formations = ["estrella", "robot", "dragon"]
     for kind in formations:
         print(f"=== Simulación figura: {kind} ===")
         swarm = Swarm(N_DRONES, kind)
