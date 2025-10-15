@@ -43,10 +43,7 @@ El código simula un **enjambre de drones** en un entorno de cuadrícula con obs
 
 ## 📊 Métricas calculadas
 
-1. **Cobertura (%)**:  
-   \[
-   \text{Cobertura} = \frac{\text{Área cubierta}}{\text{Área total libre}} \times 100
-   \]
+1. **Cobertura (%)**
 
 2. **Supervivientes encontrados**: cantidad localizada vs. total.  
 
