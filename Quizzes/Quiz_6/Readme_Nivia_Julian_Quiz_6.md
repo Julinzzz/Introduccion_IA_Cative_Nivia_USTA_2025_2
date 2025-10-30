@@ -16,22 +16,22 @@ Un aventurero tiene una mochila con **capacidad 50 kg**. Encuentra los objetos:
 ---
 
 ## 2) Idea Greedy (Mochila Fraccional)
-- Criterio: **densidad de valor** \( \text{densidad} = \frac{\text{valor}}{\text{peso}} \).
+- Criterio: **densidad de valor** $ \text{densidad} = \frac{\text{valor}}{\text{peso}} $.
 - Ordenar de mayor a menor densidad y **tomar completo** cada objeto; si el último no cabe, **tomar solo la fracción necesaria**.
 
 Densidades:
-- A: \(60/10 = 6\)
-- B: \(100/20 = 5\)
-- C: \(120/30 = 4\)
+- A: $60/10 = 6$
+- B: $100/20 = 5$
+- C: $120/30 = 4$
 
 **Orden voraz:** A → B → C.
 
 **Selección:**
 - A completo (10 kg, 60) → quedan 40 kg  
 - B completo (20 kg, 100) → quedan 20 kg  
-- C fraccionado \(20/30 = 2/3\) (20 kg, **80**)
+- C fraccionado $20/30 = 2/3$ (20 kg, **80**)
 
-**Resultado óptimo (fraccional):** A + B + \frac{2}{3} de C  
+**Resultado óptimo (fraccional):** $A + B + \tfrac{2}{3}\,\text{de } C$  
 **Peso total:** 50 kg — **Valor total:** **240** monedas.
 
 ---
