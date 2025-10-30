@@ -16,11 +16,11 @@ Un aventurero tiene una mochila con **capacidad 50 kg**. Encuentra los objetos:
 ---
 
 ## 2) Idea Greedy (Mochila Fraccional)
-- Criterio: densidad de valor $ \mathrm{densidad}=\frac{\mathrm{valor}}{\mathrm{peso}} $.
+- Criterio: **densidad de valor** / Densidad = $\tfrac{valor}{peso}\$
 - Ordenar de mayor a menor densidad y **tomar completo** cada objeto; si el último no cabe, **tomar solo la fracción necesaria**.
 
 Densidades:
-- A: $60/10 = 6$
+- A: $60/10  = 6$
 - B: $100/20 = 5$
 - C: $120/30 = 4$
 
