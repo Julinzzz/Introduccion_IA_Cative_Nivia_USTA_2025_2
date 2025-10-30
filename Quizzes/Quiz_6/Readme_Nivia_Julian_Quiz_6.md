@@ -31,7 +31,7 @@ Densidades:
 - B completo (20 kg, 100) → quedan 20 kg  
 - C fraccionado \(20/30 = 2/3\) (20 kg, **80**)
 
-**Resultado óptimo (fraccional):** A + B + \( \tfrac{2}{3} \) de C  
+**Resultado óptimo (fraccional):** A + B + \(\frac{2}{3}) de C  
 **Peso total:** 50 kg — **Valor total:** **240** monedas.
 
 ---
