@@ -48,7 +48,7 @@ def demo_sensitivity(r: float = 3.9, x0: float = 0.5000, y0: float = 0.5001, n: 
     ax.set_ylabel(r"$|\Delta_t|$")
     ax.set_title("Sensibilidad (log)")
     fig.tight_layout()
-    fig.savefig("sensibilidad_logistico.png", dpi=180)
+    #fig.savefig("sensibilidad_logistico.png", dpi=180)
     plt.close(fig)
 
 
@@ -75,7 +75,7 @@ def bifurcation_sample(rs: List[float], burn: int = 220, keep: int = 90, x0: flo
     ax.set_xlim(min(rs) - 0.02, max(rs) + 0.02)
     ax.set_ylim(0, 1)
     fig.tight_layout()
-    fig.savefig("bifurcacion_logistico.png", dpi=180)
+    #fig.savefig("bifurcacion_logistico.png", dpi=180)
     plt.close(fig)
 
 
@@ -174,7 +174,7 @@ def space_time_diagram(rho: float, cfg: NaSchConfig, T: int = 200, seed: int = 7
     ax.set_ylabel("Tiempo (steps)")
     ax.set_title(f"Diagrama espacio–tiempo NaSch (ρ={rho:.2f}, p={cfg.p}, v_max={cfg.vmax})")
     fig.tight_layout()
-    fig.savefig("nasch_espacio_tiempo.png", dpi=180)
+    #fig.savefig("nasch_espacio_tiempo.png", dpi=180)
     plt.close(fig)
 
 
@@ -200,7 +200,7 @@ def main():
     ax.set_title("Diagrama fundamental (NaSch)")
     ax.grid(True, alpha=0.3)
     fig.tight_layout()
-    fig.savefig("fundamental_nasch.png", dpi=180)
+    #fig.savefig("fundamental_nasch.png", dpi=180)
     plt.close(fig)
 
     # espacio–tiempo para una densidad representativa (cerca de la crítica)
