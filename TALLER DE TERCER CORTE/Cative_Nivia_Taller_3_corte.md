@@ -1,4 +1,4 @@
-# Taller: Aprendizaje por refuerzo, Teorema de Bayes y algoritmos de IA - Cative y Nivia
+# Taller: Aprendizaje por refuerzo, Teorema de Bayes y algoritmos de IA
 
 ## 0. Contexto general
 
@@ -17,13 +17,13 @@ En lugar de recibir ejemplos “entrada–salida” ya etiquetados, el agente re
 
 Formalmente, muchos problemas de RL se modelan como un **proceso de decisión de Markov (MDP)** caracterizado por:
 
-- Un conjunto de estados \( S \).
-- Un conjunto de acciones \( A \).
-- Una función de transición de estados \( P(s' \mid s, a) \).
-- Una función de recompensa \( R(s, a) \).
-- Un factor de descuento \( \gamma \in [0,1] \) que pondera recompensas futuras.
+- Un conjunto de estados $S$.
+- Un conjunto de acciones $A$.
+- Una función de transición de estados $P(s' \mid s, a)$.
+- Una función de recompensa $R(s, a)$.
+- Un factor de descuento $\gamma \in [0,1]$ que pondera recompensas futuras.
 
-El objetivo del agente es aprender una **política** \( \pi(a \mid s) \) que maximice la recompensa acumulada esperada a largo plazo (retorno).
+El objetivo del agente es aprender una **política** $\pi(a \mid s)$ que maximice la recompensa acumulada esperada a largo plazo (retorno).
 
 ### 1.1 Componentes básicos de un problema de RL
 
@@ -35,27 +35,27 @@ En casi cualquier formulación de RL aparecen los siguientes elementos:
 - **Entorno (environment)**  
   Todo aquello con lo que interactúa el agente: simulador, robot físico, videojuego, proceso industrial, etc.
 
-- **Estado (\(s\))**  
+- **Estado ($s$)**  
   Información que describe la situación actual del entorno desde el punto de vista del agente  
   (por ejemplo: posición y velocidad de un robot, precios actuales en un sistema financiero, etc.).
 
-- **Acción (\(a\))**  
+- **Acción ($a$)**  
   Decisión que toma el agente en un estado concreto: mover un actuador, comprar/vender, acelerar/frenar, etc.
 
-- **Recompensa inmediata (\(r\))**  
+- **Recompensa inmediata ($r$)**  
   Señal escalar que indica qué tan buena fue la acción tomada en ese estado  
   (puede ser positiva, cero o negativa).
 
-- **Política (\(\pi\))**  
+- **Política ($\pi$)**  
   Regla de decisión del agente: puede ser una tabla, una función matemática o una red neuronal que,
   dado un estado, selecciona una acción (determinista o probabilísticamente).
 
-- **Función de valor (\(V(s)\) o \(Q(s,a)\))**  
+- **Función de valor ($V(s)$ o $Q(s,a)$)**  
   Estimación de “lo bueno” que es un estado (o un par estado–acción) en términos de la recompensa total futura esperada.
 
 - **Modelo del entorno (opcional)**  
   Aproximación interna que el agente tiene de las dinámicas del entorno  
-  (\( \hat{P}(s' \mid s,a), \hat{R}(s,a) \)).  
+  ($\hat{P}(s' \mid s,a)$, $\hat{R}(s,a)$).  
   Si el agente usa un modelo explícito, se habla de **RL basado en modelo**.
 
 - **Episodio**  
@@ -68,23 +68,23 @@ En casi cualquier formulación de RL aparecen los siguientes elementos:
 
 En un entorno incierto, el agente **no conoce a priori** las consecuencias exactas de sus acciones. El aprendizaje por refuerzo permite que el agente mejore su comportamiento mediante un ciclo continuo de **prueba y error**:
 
-1. El agente observa el estado actual \( s_t \) del entorno.
-2. La política \( \pi \) del agente selecciona una acción \( a_t \)  
-   (por ejemplo, siguiendo una estrategia de exploración/ explotación como \(\epsilon\)-greedy).
+1. El agente observa el estado actual $s_t$ del entorno.
+2. La política $\pi$ del agente selecciona una acción $a_t$  
+   (por ejemplo, siguiendo una estrategia de exploración/explotación como $\epsilon$-greedy).
 3. El entorno responde:
-   - Cambia a un nuevo estado \( s_{t+1} \).
-   - Entrega una recompensa \( r_t \).
-4. El agente **actualiza sus estimaciones** internas (por ejemplo, la función de valor \(Q(s,a)\) o los parámetros de su política \(\theta\)) usando el par \((s_t, a_t, r_t, s_{t+1})\).
+   - Cambia a un nuevo estado $s_{t+1}$.
+   - Entrega una recompensa $r_t$.
+4. El agente **actualiza sus estimaciones** internas (por ejemplo, la función de valor $Q(s,a)$ o los parámetros de su política $\theta$) usando el cuádruple $(s_t, a_t, r_t, s_{t+1})$.
 5. El ciclo continúa hasta completar un episodio; luego se repiten muchos episodios.
 
 La idea clave es que el agente busca maximizar el **retorno esperado**:
 
-\[
+$$
 G_t = \sum_{k=0}^{\infty} \gamma^k r_{t+k+1}
-\]
+$$
 
-donde \( \gamma \in [0,1) \) es el factor de descuento.  
-Durante el aprendizaje, el agente ajusta su política para que las secuencias de acciones produzcan valores de \( G_t \) cada vez mayores.
+donde $\gamma \in [0,1)$ es el factor de descuento.  
+Durante el aprendizaje, el agente ajusta su política para que las secuencias de acciones produzcan valores de $G_t$ cada vez mayores.
 
 El carácter **incierto** del entorno (ruido, transiciones probabilísticas, recompensas variables) se maneja mediante:
 
@@ -111,7 +111,7 @@ A continuación se describe cada grupo junto con sus elementos y arquitectura ge
 
 1. **Algoritmos basados en modelo (model-based RL)**  
    - El agente **aprende o dispone** de un modelo explícito del entorno:  
-     \(\hat{P}(s' \mid s,a)\) y \(\hat{R}(s,a)\).
+     $\hat{P}(s' \mid s,a)$ y $\hat{R}(s,a)$.
    - Con ese modelo puede **planear**: simular trayectorias, evaluar políticas y mejorar su estrategia
      sin interactuar directamente con el entorno real.
    - Ejemplos:  
@@ -126,16 +126,16 @@ A continuación se describe cada grupo junto con sus elementos y arquitectura ge
 
 Arquitectura típica (model-free):
 
-- Entrada: estado actual \(s\) (vector de características, imagen, etc.).
+- Entrada: estado actual $s$ (vector de características, imagen, etc.).
 - Bloque de aproximación de función:  
   - Tabla de valores (en problemas pequeños), o  
   - Red neuronal / modelo paramétrico.
 - Salida:  
-  - Valores \(Q(s,a)\) para cada acción (value-based), o  
-  - Probabilidades de acción \(\pi(a \mid s)\) (policy-based).
+  - Valores $Q(s,a)$ para cada acción (value-based), o  
+  - Probabilidades de acción $\pi(a \mid s)$ (policy-based).
 - Módulo de actualización:  
-  - Regla de actualización TD (diferencias temporales) para \(Q\), o  
-  - Gradiente de la política para los parámetros de \(\pi\).
+  - Regla de actualización TD (diferencias temporales) para $Q$, o  
+  - Gradiente de la política para los parámetros de $\pi$.
 
 ---
 
@@ -143,59 +143,61 @@ Arquitectura típica (model-free):
 
 En los métodos value-based el agente aprende una **función de valor** y deriva la política a partir de ella:
 
-- **Función Q:** \(Q(s,a)\) = valor esperado de escoger la acción \(a\) en el estado \(s\) y seguir la política actual.
+- **Función Q:** $Q(s,a)$ = valor esperado de escoger la acción $a$ en el estado $s$ y seguir la política actual.
 - **Política implícita:** suele elegirse como  
-  \[
+
+  $$
   \pi(s) = \arg\max_a Q(s,a)
-  \]
-  con algún mecanismo de exploración (por ejemplo, \(\epsilon\)-greedy).
+  $$
+
+  con algún mecanismo de exploración (por ejemplo, $\epsilon$-greedy).
 
 Ejemplos:
 
 - **Q-learning (tabular)**  
-  Actualiza una tabla de valores \(Q(s,a)\) con una regla de actualización basada en TD.
+  Actualiza una tabla de valores $Q(s,a)$ con una regla de actualización basada en TD.
 
 - **SARSA**  
   Similar a Q-learning, pero la actualización usa la acción realmente tomada en el siguiente estado,
   lo que lo hace on-policy.
 
 - **Deep Q-Network (DQN)**  
-  Extiende Q-learning usando una **red neuronal profunda** para aproximar \(Q(s,a)\) a partir de estados de alta dimensión (imágenes de videojuegos, por ejemplo).
+  Extiende Q-learning usando una **red neuronal profunda** para aproximar $Q(s,a)$ a partir de estados de alta dimensión (imágenes de videojuegos, por ejemplo).
 
 Elementos de la arquitectura value-based:
 
 - Representación del estado (features o imágenes).
-- Aproximador de \(Q\) (tabla o red neuronal).
+- Aproximador de $Q$ (tabla o red neuronal).
 - Mecanismo de selección de acciones.
-- Regla de actualización de \(Q\) usando recompensas y el valor estimado futuro.
+- Regla de actualización de $Q$ usando recompensas y el valor estimado futuro.
 
 ---
 
 #### 1.3.3 Algoritmos basados en políticas (policy-based)
 
-En los métodos policy-based se busca aprender directamente una política **parametrizada** \(\pi_\theta(a \mid s)\), sin pasar explícitamente por una función de valor:
+En los métodos policy-based se busca aprender directamente una política **parametrizada** $\pi_\theta(a \mid s)$, sin pasar explícitamente por una función de valor:
 
-- \(\theta\) son los parámetros de la política (por ejemplo, pesos de una red neuronal).
-- Se maximiza el rendimiento esperado \(J(\theta)\) mediante **gradiente ascendente**:
+- $\theta$ son los parámetros de la política (por ejemplo, pesos de una red neuronal).
+- Se maximiza el rendimiento esperado $J(\theta)$ mediante **gradiente ascendente**:
 
-\[
+$$
 \theta \leftarrow \theta + \alpha \nabla_\theta J(\theta)
-\]
+$$
 
 Ejemplos:
 
 - **REINFORCE**  
-  Método básico de gradiente de política que actualiza \(\theta\) a partir de episodios completos.
+  Método básico de gradiente de política que actualiza $\theta$ a partir de episodios completos.
 
 - **Métodos avanzados de política proximal, como PPO (Proximal Policy Optimization)**  
   Mejoran la estabilidad del entrenamiento limitando cuánto cambia la política en cada actualización.
 
 Arquitectura típica policy-based:
 
-- Entrada: estado \(s\).
+- Entrada: estado $s$.
 - Red neuronal: produce parámetros de la distribución sobre acciones  
   (por ejemplo, probabilidades para acciones discretas o media/varianza para acciones continuas).
-- Módulo de muestreo: genera la acción \(a\) a partir de la distribución.
+- Módulo de muestreo: genera la acción $a$ a partir de la distribución.
 - Cálculo del **gradiente de la política** usando recompensas acumuladas.
 
 ---
@@ -205,10 +207,10 @@ Arquitectura típica policy-based:
 Los métodos actor–critic combinan ideas de los dos enfoques anteriores:
 
 - **Actor**  
-  Componente que representa la política \(\pi_\theta(a \mid s)\) y decide qué acción tomar.
+  Componente que representa la política $\pi_\theta(a \mid s)$ y decide qué acción tomar.
 
 - **Crítico (critic)**  
-  Componente que estima una función de valor \(V^\omega(s)\) o \(Q^\omega(s,a)\) y evalúa la calidad de las acciones del actor.
+  Componente que estima una función de valor $V^\omega(s)$ o $Q^\omega(s,a)$ y evalúa la calidad de las acciones del actor.
 
 El crítico proporciona una señal de **error de ventaja** o de TD al actor para mejorar la política.
 
@@ -278,23 +280,28 @@ En todos estos casos se aprovecha la capacidad del RL para **aprender políticas
 Se dispone de la siguiente información histórica sobre los correos recibidos por una empresa:
 
 - El **30 %** de todos los correos son spam:  
-  \[
+
+  $$
   P(\text{Spam}) = 0.3
-  \]
+  $$
+
 - El **80 %** de los correos spam contienen la palabra “gratis”:  
-  \[
+
+  $$
   P(\text{“gratis”} \mid \text{Spam}) = 0.8
-  \]
+  $$
+
 - El **10 %** de los correos **no spam** contienen la palabra “gratis”:  
-  \[
+
+  $$
   P(\text{“gratis”} \mid \text{No Spam}) = 0.1
-  \]
+  $$
 
 Se desea calcular:
 
-\[
+$$
 P(\text{Spam} \mid \text{“gratis”})
-\]
+$$
 
 es decir, la probabilidad de que un correo sea spam dado que contiene la palabra “gratis”.
 
@@ -304,49 +311,54 @@ es decir, la probabilidad de que un correo sea spam dado que contiene la palabra
 
 El teorema de Bayes relaciona probabilidades condicionadas de la siguiente forma:
 
-\[
+$$
 P(A \mid B) = \frac{P(B \mid A)\,P(A)}{P(B)}
-\]
+$$
 
 donde:
 
-- \( P(A \mid B) \): probabilidad posterior (lo que se desea calcular).
-- \( P(A) \): probabilidad a priori del evento \( A \).
-- \( P(B \mid A) \): verosimilitud (qué tan probable es observar \( B \) si \( A \) es cierto).
-- \( P(B) \): probabilidad total de observar \( B \).
+- $P(A \mid B)$: probabilidad posterior (lo que se desea calcular).
+- $P(A)$: probabilidad a priori del evento $A$.
+- $P(B \mid A)$: verosimilitud (qué tan probable es observar $B$ si $A$ es cierto).
+- $P(B)$: probabilidad total de observar $B$.
 
 En este caso:
 
-- \( A = \text{Spam} \)
-- \( B = \text{“gratis”} \)
+- $A = \text{Spam}$
+- $B = \text{“gratis”}$
 
 ---
 
-### 2.3 Cálculo paso a paso de \(P(\text{Spam} \mid \text{“gratis”})\)
+### 2.3 Cálculo paso a paso de $P(\text{Spam} \mid \text{“gratis”})$
 
 1. **Probabilidad a priori de spam**  
-   \[
+
+   $$
    P(\text{Spam}) = 0.3
-   \]
+   $$
+
    Por tanto:
-   \[
+
+   $$
    P(\text{No Spam}) = 1 - 0.3 = 0.7
-   \]
+   $$
 
 2. **Verosimilitudes conocidas**
-   - \[
-     P(\text{“gratis”} \mid \text{Spam}) = 0.8
-     \]
-   - \[
-     P(\text{“gratis”} \mid \text{No Spam}) = 0.1
-     \]
+
+   $$
+   P(\text{“gratis”} \mid \text{Spam}) = 0.8
+   $$
+
+   $$
+   P(\text{“gratis”} \mid \text{No Spam}) = 0.1
+   $$
 
 3. **Probabilidad total de observar la palabra “gratis”**
 
    Se descompone en dos casos mutuamente excluyentes:  
    (correo es spam) o (correo no es spam):
 
-   \[
+   $$
    \begin{aligned}
    P(\text{“gratis”}) &= P(\text{“gratis”} \mid \text{Spam})P(\text{Spam}) \\
                       &\quad + P(\text{“gratis”} \mid \text{No Spam})P(\text{No Spam}) \\
@@ -354,11 +366,11 @@ En este caso:
                      &= 0.24 + 0.07 \\
                      &= 0.31
    \end{aligned}
-   \]
+   $$
 
 4. **Aplicación del teorema de Bayes**
 
-   \[
+   $$
    \begin{aligned}
    P(\text{Spam} \mid \text{“gratis”})
      &= \frac{P(\text{“gratis”} \mid \text{Spam}) P(\text{Spam})}
@@ -367,13 +379,13 @@ En este caso:
      &= \frac{0.24}{0.31} \\
      &\approx 0.7742
    \end{aligned}
-   \]
+   $$
 
 Por tanto, la probabilidad de que un correo sea spam dado que contiene la palabra “gratis” es aproximadamente:
 
-\[
+$$
 P(\text{Spam} \mid \text{“gratis”}) \approx 0.7742 \approx 77.4\%
-\]
+$$
 
 **Interpretación:**  
 Aunque inicialmente solo el 30 % de los correos son spam, el hecho de que el correo contenga la palabra “gratis” hace que la probabilidad de que sea spam aumente hasta alrededor del 77.4 %.
@@ -385,19 +397,28 @@ Aunque inicialmente solo el 30 % de los correos son spam, el hecho de que el cor
 A partir del cálculo anterior, se puede diseñar un algoritmo sencillo que:
 
 1. **Defina los parámetros del problema**
-   - \( P(\text{Spam}) \)
-   - \( P(\text{“gratis”} \mid \text{Spam}) \)
-   - \( P(\text{“gratis”} \mid \text{No Spam}) \)
+   - $P(\text{Spam})$
+   - $P(\text{“gratis”} \mid \text{Spam})$
+   - $P(\text{“gratis”} \mid \text{No Spam})$
 
 2. **Calcule la probabilidad total de la palabra “gratis”**
-   - \( P(\text{“gratis”}) = P(\text{“gratis”} \mid \text{Spam}) P(\text{Spam}) + P(\text{“gratis”} \mid \text{No Spam}) P(\text{No Spam}) \)
+
+   $$
+   P(\text{“gratis”}) = P(\text{“gratis”} \mid \text{Spam}) P(\text{Spam}) +
+                        P(\text{“gratis”} \mid \text{No Spam}) P(\text{No Spam})
+   $$
 
 3. **Calcule la probabilidad posterior**
-   - \( P(\text{Spam} \mid \text{“gratis”}) = \dfrac{P(\text{“gratis”} \mid \text{Spam}) P(\text{Spam})}{P(\text{“gratis”})} \)
+
+   $$
+   P(\text{Spam} \mid \text{“gratis”}) =
+   \frac{P(\text{“gratis”} \mid \text{Spam}) P(\text{Spam})}
+        {P(\text{“gratis”})}
+   $$
 
 4. **Opcional: tomar una decisión de clasificación**
-   - Fijar un umbral \( \tau \) (por ejemplo, \( \tau = 0.5 \)).
-   - Si \( P(\text{Spam} \mid \text{“gratis”}) \ge \tau \), se clasifica el correo como **SPAM**; en caso contrario, como **NO SPAM**.
+   - Fijar un umbral $\tau$ (por ejemplo, $\tau = 0.5$).
+   - Si $P(\text{Spam} \mid \text{“gratis”}) \ge \tau$, se clasifica el correo como **SPAM**; en caso contrario, como **NO SPAM**.
 
 Este mismo esquema se puede generalizar a un **clasificador Naive Bayes** con muchas palabras, asumiendo independencia condicional entre ellas.
 
@@ -409,7 +430,7 @@ En la práctica, la IA moderna combina varias familias de algoritmos. A continua
 
 ### 3.1 Algoritmos de aprendizaje supervisado
 
-En el aprendizaje supervisado se dispone de ejemplos de entrenamiento \((x, y)\) donde \(x\) son características y \(y\) es la etiqueta o valor a predecir.
+En el aprendizaje supervisado se dispone de ejemplos de entrenamiento $(x, y)$ donde $x$ son características y $y$ es la etiqueta o valor a predecir.
 
 #### 3.1.1 Regresión lineal y regresión logística
 
@@ -595,7 +616,7 @@ En el aprendizaje supervisado se dispone de ejemplos de entrenamiento \((x, y)\)
 
 ### 3.3 Aprendizaje no supervisado
 
-En el aprendizaje no supervisado solo se dispone de las entradas \(x\), sin etiquetas \(y\).
+En el aprendizaje no supervisado solo se dispone de las entradas $x$, sin etiquetas $y$.
 
 #### 3.3.1 K-Means
 
@@ -603,7 +624,7 @@ En el aprendizaje no supervisado solo se dispone de las entradas \(x\), sin etiq
   - Algoritmo de **clustering** (agrupamiento).
 
 - **Características**
-  - Divide los datos en \(k\) grupos, minimizando la distancia dentro de cada cluster.
+  - Divide los datos en $k$ grupos, minimizando la distancia dentro de cada cluster.
   - Itera entre asignar puntos a centroides y recalcular dichos centroides.
 
 - **Ventajas**
@@ -611,7 +632,7 @@ En el aprendizaje no supervisado solo se dispone de las entradas \(x\), sin etiq
   - Buena introducción al clustering.
 
 - **Limitaciones**
-  - Requiere elegir \(k\) de antemano.
+  - Requiere elegir $k$ de antemano.
   - Sensible a la inicialización y a la escala de las características.
   - Solo captura clusters aproximadamente esféricos.
 
