@@ -1,4 +1,4 @@
-# Taller: Aprendizaje por refuerzo, Teorema de Bayes y algoritmos de IA
+# Taller: Aprendizaje por refuerzo, Teorema de Bayes y algoritmos de IA - Cative y Nivia 
 
 ## 0. Contexto general
 
