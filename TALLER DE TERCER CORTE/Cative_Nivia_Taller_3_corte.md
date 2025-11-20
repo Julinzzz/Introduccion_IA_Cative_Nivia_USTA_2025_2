@@ -50,12 +50,12 @@ En casi cualquier formulación de RL aparecen los siguientes elementos:
   Regla de decisión del agente: puede ser una tabla, una función matemática o una red neuronal que,
   dado un estado, selecciona una acción (determinista o probabilísticamente).
 
-- **Función de valor ($V(s)$ o $Q(s,a)$)**  
+- **Función de valor ($V(s)$ o $Q(s,a)$ )**  
   Estimación de “lo bueno” que es un estado (o un par estado–acción) en términos de la recompensa total futura esperada.
 
 - **Modelo del entorno (opcional)**  
   Aproximación interna que el agente tiene de las dinámicas del entorno  
-  ($\hat{P}(s' \mid s,a)$, $\hat{R}(s,a)$).  
+  ($\hat{P}(s' \mid s,a)$, $\hat{R}(s,a)$ ).  
   Si el agente usa un modelo explícito, se habla de **RL basado en modelo**.
 
 - **Episodio**  
@@ -146,9 +146,9 @@ En los métodos value-based el agente aprende una **función de valor** y deriva
 - **Función Q:** $Q(s,a)$ = valor esperado de escoger la acción $a$ en el estado $s$ y seguir la política actual.
 - **Política implícita:** suele elegirse como  
 
-  $$
-  \pi(s) = \arg\max_a Q(s,a)
-  $$
+$$
+\pi(s) = \arg\max_a Q(s,a)
+$$
 
   con algún mecanismo de exploración (por ejemplo, $\epsilon$-greedy).
 
@@ -281,21 +281,19 @@ Se dispone de la siguiente información histórica sobre los correos recibidos p
 
 - El **30 %** de todos los correos son spam:  
 
-  $$
-  P(\text{Spam}) = 0.3
-  $$
+$$ P(\text{Spam}) = 0.3 $$
 
 - El **80 %** de los correos spam contienen la palabra “gratis”:  
 
-  $$
-  P(\text{“gratis”} \mid \text{Spam}) = 0.8
-  $$
+$$
+P(\text{“gratis”} \mid \text{Spam}) = 0.8
+$$
 
 - El **10 %** de los correos **no spam** contienen la palabra “gratis”:  
 
-  $$
-  P(\text{“gratis”} \mid \text{No Spam}) = 0.1
-  $$
+$$
+P(\text{“gratis”} \mid \text{No Spam}) = 0.1
+$$
 
 Se desea calcular:
 
@@ -333,53 +331,43 @@ En este caso:
 
 1. **Probabilidad a priori de spam**  
 
-   $$
-   P(\text{Spam}) = 0.3
-   $$
+$$ P(\text{Spam}) = 0.3 $$
 
-   Por tanto:
+Por tanto:
 
-   $$
-   P(\text{No Spam}) = 1 - 0.3 = 0.7
-   $$
+$$ P(\text{No Spam}) = 1 - 0.3 = 0.7 $$
 
 2. **Verosimilitudes conocidas**
 
-   $$
-   P(\text{“gratis”} \mid \text{Spam}) = 0.8
-   $$
+$$ P(\text{gratis} \mid \text{Spam}) = 0.8 $$
 
-   $$
-   P(\text{“gratis”} \mid \text{No Spam}) = 0.1
-   $$
+$$ P(\text{gratis} \mid \text{No Spam}) = 0.1 $$
 
-3. **Probabilidad total de observar la palabra “gratis”**
+3. Probabilidad total de observar la palabra “gratis”
 
-   Se descompone en dos casos mutuamente excluyentes:  
-   (correo es spam) o (correo no es spam):
+Se descompone en dos casos mutuamente excluyentes:
+(correo es spam) o (correo no es spam):
 
-   $$
-   \begin{aligned}
-   P(\text{“gratis”}) &= P(\text{“gratis”} \mid \text{Spam})P(\text{Spam}) \\
-                      &\quad + P(\text{“gratis”} \mid \text{No Spam})P(\text{No Spam}) \\
-                     &= 0.8 \cdot 0.3 + 0.1 \cdot 0.7 \\
-                     &= 0.24 + 0.07 \\
-                     &= 0.31
-   \end{aligned}
-   $$
+$$
+\begin{aligned}
+P(\text{gratis}) &= P(\text{gratis} \mid \text{Spam})P(\text{Spam}) \\
+                 &\quad + P(\text{gratis} \mid \text{No Spam})P(\text{No Spam}) \\
+                 &= 0.8 \cdot 0.3 + 0.1 \cdot 0.7 \\
+                 &= 0.24 + 0.07 \\
+                 &= 0.31
+\end{aligned}
+$$
 
-4. **Aplicación del teorema de Bayes**
+4. Aplicación del teorema de Bayes
 
-   $$
-   \begin{aligned}
-   P(\text{Spam} \mid \text{“gratis”})
-     &= \frac{P(\text{“gratis”} \mid \text{Spam}) P(\text{Spam})}
-             {P(\text{“gratis”})} \\
-     &= \frac{0.8 \cdot 0.3}{0.31} \\
-     &= \frac{0.24}{0.31} \\
-     &\approx 0.7742
-   \end{aligned}
-   $$
+$$
+\begin{aligned}
+P(\text{Spam} \mid \text{gratis})
+  &= \frac{P(\text{gratis} \mid \text{Spam})\,P(\text{Spam})}{P(\text{gratis})} \\
+  &= \frac{0.8 \cdot 0.3}{0.31} \\
+  &\approx 0.7742
+\end{aligned}
+$$
 
 Por tanto, la probabilidad de que un correo sea spam dado que contiene la palabra “gratis” es aproximadamente:
 
@@ -403,18 +391,18 @@ A partir del cálculo anterior, se puede diseñar un algoritmo sencillo que:
 
 2. **Calcule la probabilidad total de la palabra “gratis”**
 
-   $$
-   P(\text{“gratis”}) = P(\text{“gratis”} \mid \text{Spam}) P(\text{Spam}) +
+$$
+P(\text{“gratis”}) = P(\text{“gratis”} \mid \text{Spam}) P(\text{Spam}) +
                         P(\text{“gratis”} \mid \text{No Spam}) P(\text{No Spam})
-   $$
+$$
 
 3. **Calcule la probabilidad posterior**
 
-   $$
-   P(\text{Spam} \mid \text{“gratis”}) =
+$$
+P(\text{Spam} \mid \text{“gratis”}) =
    \frac{P(\text{“gratis”} \mid \text{Spam}) P(\text{Spam})}
         {P(\text{“gratis”})}
-   $$
+$$
 
 4. **Opcional: tomar una decisión de clasificación**
    - Fijar un umbral $\tau$ (por ejemplo, $\tau = 0.5$).
